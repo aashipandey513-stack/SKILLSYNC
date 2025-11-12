@@ -3,6 +3,16 @@
 # Use an official Python runtime as a parent image
 FROM python:3.10-slim
 
+# === ADD THIS BLOCK ===
+# Install system-level audio dependencies
+# libsndfile1 is for PySoundFile (librosa's preferred backend)
+# ffmpeg is for audioread (librosa's fallback)
+RUN apt-get update && apt-get install -y \
+    libsndfile1 \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+# === END OF BLOCK ===
+
 # Set the working directory in the container
 WORKDIR /code
 
