@@ -111,11 +111,17 @@ let question = 'Tell me about yourself...'; // Default question
 if (document.title.includes("Competition Practice")) {
     endpoint = '/process-competition-audio';
     question = document.getElementById('competition-topic').innerText;
-    // Also send the position
-    formData.append('position', document.getElementById('competition-position').innerText);
-} else {
-    // You can make the interview question dynamic too if you want
-    // question = document.getElementById('interview-question').innerText;
+    formData.append('context', 'competition');
+
+} else if (document.title.includes("Soft Skills")) {
+    endpoint = '/process-soft-skills-audio';
+    question = document.getElementById('skill-prompt').innerText;
+    formData.append('context', 'soft-skills');
+
+} else { // Default to Mock Interview
+    endpoint = '/process-interview-audio';
+    // question = document.getElementById('interview-question').innerText; // (If you make it dynamic)
+    formData.append('context', 'interview');
 }
 
 // Add the question to the form data
