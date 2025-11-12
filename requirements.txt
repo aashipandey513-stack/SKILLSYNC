@@ -11,3 +11,6 @@ torch
 # 'librosa' is needed for processing audio files
 librosa
 sentencepiece
+motor
+bcrypt
+pydantic[email]
