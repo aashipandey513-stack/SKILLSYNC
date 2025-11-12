@@ -15,7 +15,7 @@ RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 # Copy the rest of the application's source code
 COPY . /code/
 
-# Expose the port the app runs on
+# Expose the port the app runs on (Hugging Face Spaces default)
 EXPOSE 7860
 
 # Command to run the application
