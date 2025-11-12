@@ -19,11 +19,11 @@
             <li><a href="/soft-skills" class="text-gray-600 hover:text-blue-600 font-medium"><i class="fas fa-comment-dots w-6"></i>Soft Skills</a></li>
             <li><a href="/aptitude" class="text-gray-600 hover:text-blue-600 font-medium"><i class="fas fa-brain w-6"></i>Aptitude Test</a></li>
             <li><a href="/analytics" class="text-gray-600 hover:text-blue-600 font-medium"><i class="fas fa-chart-line w-6"></i>Progress</a></li>
-             <li class="pt-4 border-t mt-4">
-            <a href="/logout" class="text-gray-600 hover:text-red-600 font-medium">
-                <i class="fas fa-sign-out-alt w-6"></i>Logout
-            </a>
-        </li>
+            <li class="pt-4 border-t mt-4">
+                <a href="/logout" class="text-gray-600 hover:text-red-600 font-medium">
+                    <i class="fas fa-sign-out-alt w-6"></i>Logout
+                </a>
+            </li>
         </ul>
     </nav>
 
@@ -36,17 +36,14 @@
                 <span class="px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-medium">Debate</span>
                 <span class="px-4 py-2 bg-white text-gray-700 rounded-full text-sm font-medium border">Public Speaking</span>
                 <span class="px-4 py-2 bg-white text-gray-700 rounded-full text-sm font-medium border">Case Study</span>
-                <button class="px-4 py-2 bg-white text-gray-700 rounded-full text-sm font-medium border ml-auto">New Topic</button>
             </div>
 
             <div class="mb-6">
-                <span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">Debate Topic</span>
-                <span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">Moderate</span>
                 <h3 id="competition-topic" class="text-xl font-medium text-gray-900 mt-2">
                     "Remote work is more productive than office work"
                 </h3>
                 <p id="competition-position" class="p-3 bg-yellow-50 text-yellow-800 rounded-md mt-2 text-sm">
-                    <strong>Your Position:</strong> Argue in FAVOR of this statement. Prepare a 2-minute persuasive argument.
+                    <strong>Your Position:</strong> Argue in FAVOR of this statement.
                 </p>
             </div>
 
@@ -56,93 +53,54 @@
                     <p class="text-gray-500 mt-4">Click start to begin recording your debate argument</p>
                 </div>
                 <div id="recording-state" class="hidden">
-                    <div class="waveform-placeholder h-20 w-full bg-gray-100 rounded-md flex items-center justify-center">
+                    <div class="h-20 w-full bg-gray-100 rounded-md flex items-center justify-center">
                         <span class="text-red-500 font-bold">RECORDING...</span>
                     </div>
                     <p id="timer" class="text-gray-700 mt-2">00:00</p>
                 </div>
             </div>
 
-            <div class="flex justify-between mt-6">
-                <button id="re-record-btn" class="px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-md hover:bg-gray-300" disabled>
-                    Re-record
-                </button>
-                
-                <button id="start-record-btn" class="px-6 py-3 bg-gray-800 text-white font-semibold rounded-md hover:bg-gray-900">
-                    <i class="fas fa-record-vinyl"></i> Start Recording
-                </button>
-                
-                <button id="stop-record-btn" class="px-6 py-3 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 hidden">
-                    <i class="fas fa-stop"></i> Stop Recording
-                </button>
+            <audio id="audio-playback" class="hidden"></audio>
 
-                <button id="get-feedback-btn" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700" disabled>
-                    Get AI Feedback
-                </button>
+            <div class="flex justify-between items-center mt-6">
+                <div class="flex space-x-4">
+                    <button id="re-record-btn" class="px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-md hover:bg-gray-300">
+                        <i class="fas fa-redo"></i> Re-record
+                    </button>
+                    <button id="playback-btn" class="px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-md hover:bg-gray-300">
+                        <i class="fas fa-play"></i> Playback
+                    </button>
+                </div>
+                <div>
+                    <button id="start-record-btn" class="px-6 py-3 bg-gray-800 text-white font-semibold rounded-md hover:bg-gray-900">
+                        <i class="fas fa-record-vinyl"></i> Start Recording
+                    </button>
+                    <button id="stop-record-btn" class="px-6 py-3 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700">
+                        <i class="fas fa-stop"></i> Stop Recording
+                    </button>
+                    <button id="get-feedback-btn" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700">
+                        Get AI Feedback
+                    </button>
+                </div>
             </div>
             
             <div id="loading-spinner" class="text-center p-8 hidden">
                 <i class="fas fa-spinner fa-spin text-4xl text-blue-600"></i>
-                <p class="text-gray-600 mt-4">Analyzing your response...</p>
+                <p class="text-gray-600 mt-4">Analyzing your response... This may take up to 90 seconds.</p>
             </div>
 
             <div id="feedback-section" class="mt-8 hidden">
-                <div class="bg-white p-8 rounded-lg shadow-sm">
-                    <div class="mb-6 pb-6 border-b">
-                        <h3 class="text-xl font-semibold text-gray-800 mb-2">Overall Performance</h3>
-                        <div class="flex items-center space-x-3">
-                            <span id="feedback-score" class="text-5xl font-bold text-blue-600">0%</span>
-                            <span id="feedback-rating" class="text-2xl font-semibold text-gray-600"></span>
-                        </div>
-                    </div>
-                    <div class="flex flex-col lg:flex-row gap-8">
-                        <div class="flex-grow">
-                            <h4 class="text-lg font-semibold text-gray-800 mb-3">Detailed Analysis</h4>
-                            <table id="feedback-analysis-table" class="w-full"><tbody class="text-sm"></tbody></table>
-                            <h4 class="text-lg font-semibold text-gray-800 mt-6 mb-3">Your Response (Transcribed)</h4>
-                            <p id="feedback-transcript" class="p-4 bg-gray-50 rounded-md text-gray-700 leading-relaxed"></p>
-                        </div>
-                        <div class="w-full lg:w-2/5 flex-shrink-0">
-                            <h4 class="text-lg font-semibold text-green-600 mb-3"><i class="fas fa-check-circle"></i> Strengths</h4>
-                            <ul id="feedback-strengths-list" class="list-disc list-inside space-y-1 text-gray-700"></ul>
-                            <h4 class="text-lg font-semibold text-yellow-600 mt-6 mb-3"><i class="fas fa-exclamation-triangle"></i> Areas to Improve</h4>
-                            <ul id="feedback-improvements-list" class="list-disc list-inside space-y-1 text-gray-700"></ul>
-                            <h4 class="text-lg font-semibold text-blue-600 mt-6 mb-3"><i class="fas fa-magic"></i> AI-Powered Suggestions</h4>
-                            <ul id="feedback-suggestions-list" class="list-disc list-inside space-y-1 text-gray-700"></ul>
-                        </div>
-                    </div>
                 </div>
-            </div> </div>
-    </a-side>
+        </div>
+    </main>
 
     <aside class="w-80 bg-white p-6 shadow-md hidden xl:block">
         <div class="mb-6">
             <h4 class="font-semibold text-gray-800 mb-2">Debate Tips</h4>
             <ul class="list-disc list-inside text-sm text-gray-600 space-y-1">
-                <li>State your position clearly in the opening</li>
+                <li>State your position clearly</li>
                 <li>Use logical reasoning and evidence</li>
                 <li>Address potential counterarguments</li>
-                <li>Maintain a confident and respectful tone</li>
-                <li>Summarize your key points in conclusion</li>
-            </ul>
-        </div>
-        <div class="mb-6">
-            <h4 class="font-semibold text-gray-800 mb-2">Evaluation Criteria</h4>
-            <ul class="text-sm text-gray-600 space-y-1">
-                <li><strong>Argument Structure:</strong> 25%</li>
-                <li><strong>Persuasion:</strong> 25%</li>
-                <li><strong>Clarity:</strong> 20%</li>
-                <li><strong>Evidence:</strong> 20%</li>
-                <li><strong>Time Management:</strong> 10%</li>
-            </ul>
-        </div>
-        <div>
-            <h4 class="font-semibold text-gray-800 mb-2">Session Info</h4>
-            <ul class="text-sm text-gray-600 space-y-1">
-                <li><strong>Type:</strong> Debate</li>
-                <li><strong>Difficulty:</strong> Moderate</li>
-                <li><strong>Time Limit:</strong> 2 minutes</li>
-                <li><strong>Position:</strong> In Favor</li>
             </ul>
         </div>
     </aside>
