@@ -1,4 +1,5 @@
 # SkillSync/requirements.txt
+
 fastapi
 uvicorn[standard]
 jinja2
@@ -8,9 +9,10 @@ aiofiles
 # For AI/ML (Speech-to-Text and NLP)
 transformers
 torch
-# 'librosa' is needed for processing audio files
 librosa
 sentencepiece
+
+# --- ADD THESE 4 LINES ---
 motor
 bcrypt
 pydantic[email]
