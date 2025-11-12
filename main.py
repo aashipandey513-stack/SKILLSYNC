@@ -305,7 +305,7 @@ async def process_competition_audio(
 
 
 @app.post("/process-soft-skills-audio")
-async def process_soft-skills-audio(
+async def process_soft_skills_audio(
     current_user_email: EmailStr = Depends(get_current_user_email), # NEW
     audio_file: UploadFile = File(...),
     question: str = Form(...),
