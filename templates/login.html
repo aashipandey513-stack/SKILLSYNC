@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-R">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - SKILLSYNC</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -23,7 +23,7 @@
             <p class="text-sm text-gray-500">Sign in to your account or create a new one to get started</p>
         </div>
 
-        <form class="space-y-4" action="/login" method="POST">
+        <form class="space-y-4" id="auth-form" method="POST">
             <div>
                 <label for="email" class="text-sm font-medium text-gray-700">Email</label>
                 <input type="email" name="email" id="email" 
@@ -37,22 +37,21 @@
                        placeholder="........" required>
             </div>
             
-            <button type="submit" 
-                    class="w-full py-2 px-4 text-white font-semibold bg-blue-600 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                Sign In
-            </button>
+            <div class="space-y-4 pt-2">
+                <button type="submit" form="auth-form" formaction="/login"
+                        class="w-full py-2 px-4 text-white font-semibold bg-blue-600 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    Sign In
+                </button>
+                
+                <button type="submit" form="auth-form" formaction="/signup"
+                        class="w-full py-2 px-4 text-blue-600 font-semibold bg-white border border-blue-600 rounded-md shadow-sm hover:bg-blue-50">
+                    Sign Up
+                </button>
+            </div>
         </form>
-
-        <form action="/signup" method="POST" class="hidden">
-            </form>
-        <button onclick="document.forms[1].submit();"
-                class="w-full py-2 px-4 text-blue-600 font-semibold bg-white border border-blue-600 rounded-md shadow-sm hover:bg-blue-50">
-            Sign Up
-        </button>
-
-        <form action="/demo" method="GET">
+        <form action="/demo" method="GET" class="pt-2">
              <button type="submit" 
-                    class="w-full py-2 px-4 mt-2 text-gray-700 font-semibold bg-gray-100 border border-gray-300 rounded-md shadow-sm hover:bg-gray-200">
+                    class="w-full py-2 px-4 text-gray-700 font-semibold bg-gray-100 border border-gray-300 rounded-md shadow-sm hover:bg-gray-200">
                 Try Demo Account
             </button>
         </form>
