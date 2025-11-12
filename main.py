@@ -87,26 +87,72 @@ async def get_analytics(request: Request):
     return templates.TemplateResponse("analytics.html", {"request": request})
 
 
-# === 2. MOCK AUTHENTICATION ENDPOINTS ===
+# === 2. REAL AUTHENTICATION ENDPOINTS ===
 
 @app.post("/login")
 async def handle_login(email: str = Form(...), password: str = Form(...)):
-    """Handles the login form submission (mock)."""
+    """Handles a real user login."""
+    if not db:
+        raise HTTPException(status_code=500, detail="Database not connected")
+    
+    # Find the user in the database
+    user_in_db = await db["users"].find_one({"email": email.lower()})
+
+    # Check if user exists and password is correct
+    if not user_in_db or not verify_password(password, user_in_db["hashed_password"]):
+        print("Failed login attempt for:", email)
+        # TODO: Redirect to login with an error query parameter
+        raise HTTPException(status_code=400, detail="Incorrect email or password")
+    
+    # Login successful
+    # TODO: Create a session token (this is the next step)
+    print("Successful login for:", email)
     return RedirectResponse(url="/dashboard", status_code=303)
+
 
 @app.post("/signup")
 async def handle_signup(email: str = Form(...), password: str = Form(...)):
-    """Handles the sign-up form submission (mock)."""
+    """Handles a new user signing up."""
+    if not db:
+        raise HTTPException(status_code=500, detail="Database not connected")
+    
+    # Check if user already exists
+    existing_user = await db["users"].find_one({"email": email.lower()})
+    if existing_user:
+        # TODO: Redirect to login with an error query parameter
+        raise HTTPException(status_code=400, detail="Email already registered")
+        
+    # Hash the password
+    hashed_pwd = hash_password(password)
+    
+    # Create the new user document
+    new_user = {
+        "email": email.lower(),
+        "hashed_password": hashed_pwd,
+        "created_at": datetime.datetime.now(datetime.UTC)
+    }
+    
+    # Insert new user into the database
+    try:
+        result = await db["users"].insert_one(new_user)
+        print(f"New user created: {result.inserted_id}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating user: {e}")
+    
+    # TODO: Log the user in (create session token)
     return RedirectResponse(url="/dashboard", status_code=303)
+
 
 @app.get("/demo")
 async def handle_demo_login():
-    """Handles the 'Try Demo Account' button click (mock)."""
+    """Handles the 'Try Demo Account' button click (no change)."""
     return RedirectResponse(url="/dashboard", status_code=303)
+
 
 @app.get("/logout")
 async def handle_logout():
     """Logs the user out (mock) by redirecting to login."""
+    # TODO: In a real app, you would clear the session cookie here
     return RedirectResponse(url="/", status_code=303)
 
 
