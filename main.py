@@ -16,7 +16,8 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 import uvicorn
 import shutil
 import os
-
+from pydantic import BaseModel
+from typing import List
 # --- AI Utility Module Imports ---
 from utils import speech_to_text
 from utils import nlp_feedback
@@ -75,12 +76,99 @@ async def get_aptitude_test(request: Request):
     """Serves the aptitude test page."""
     # This is the page we will build next
     return templates.TemplateResponse("aptitude.html", {"request": request})
-
+    
+@app.get("/aptitude/quiz", response_class=HTMLResponse)
+async def get_aptitude_quiz_page(request: Request):
+    """Serves the main quiz interface page."""
+    return templates.TemplateResponse("aptitude_quiz.html", {"request": request})
+    
 @app.get("/analytics", response_class=HTMLResponse)
 async def get_analytics(request: Request):
     """Serves the analytics page."""
     return templates.TemplateResponse("analytics.html", {"request": request})
 
+# --- ADD MOCK QUIZ DATA AND ENDPOINT ---
+
+# Define data models for our quiz
+class QuizQuestion(BaseModel):
+    category: str
+    question: str
+    options: List[str]
+    answer: str
+
+# Create a mock database of questions
+mock_quiz_db = [
+    {
+        "category": "Quantitative Reasoning",
+        "question": "If a train travels 300 km in 4 hours, what is its average speed in km/h?",
+        "options": ["60 km/h", "75 km/h", "80 km/h", "90 km/h"],
+        "answer": "75 km/h"
+    },
+    {
+        "category": "Logical Reasoning",
+        "question": "Which number should come next in the series? 1, 4, 9, 16, ___",
+        "options": ["20", "25", "30", "36"],
+        "answer": "25"
+    },
+    {
+        "category": "Verbal Reasoning",
+        "question": "Choose the word that is the best antonym for 'Ephemeral'.",
+        "options": ["Transient", "Short-lived", "Permanent", "Weak"],
+        "answer": "Permanent"
+    },
+    # Add 17 more questions to make 20
+    # For now, we'll just add a few more for testing
+    {
+        "category": "Data Interpretation",
+        "question": "If a pie chart shows 25% for 'Category A', what angle does it represent in degrees?",
+        "options": ["45°", "90°", "180°", "25°"],
+        "answer": "90°"
+    },
+    {
+        "category": "Quantitative Reasoning",
+        "question": "What is 5% of 200?",
+        "options": ["5", "10", "15", "20"],
+        "answer": "10"
+    }
+]
+
+@app.get("/api/quiz-questions", response_model=List[QuizQuestion])
+async def get_quiz_questions():
+    """API endpoint to fetch the list of quiz questions."""
+    # In a real app, this would query a database
+    # We remove the 'answer' field before sending to the client
+    questions_for_client = []
+    for q in mock_quiz_db:
+        # Create a copy and remove the answer
+        q_copy = q.copy()
+        q_copy.pop("answer", None) 
+        questions_for_client.append(q_copy)
+        
+    # For this demo, we'll send a truncated list of 5
+    return questions_for_client[:5] # Send all 20 in your final version
+
+
+# --- ADD QUIZ SUBMISSION ENDPOINT ---
+class UserAnswers(BaseModel):
+    answers: dict # Will look like {"0": "75 km/h", "1": "25", ...}
+
+@app.post("/api/submit-quiz")
+async def submit_quiz(user_answers: UserAnswers):
+    """API endpoint to score the quiz."""
+    score = 0
+    total = len(mock_quiz_db[:5]) # Match the number of questions sent
+    
+    for index, selected_option in user_answers.answers.items():
+        try:
+            q_index = int(index)
+            correct_answer = mock_quiz_db[q_index]["answer"]
+            if selected_option == correct_answer:
+                score += 1
+        except Exception as e:
+            print(f"Error scoring question {index}: {e}")
+
+    print(f"Quiz submitted. Final Score: {score} / {total}")
+    return {"score": score, "total": total}    
 
 # === 2. MOCK AUTHENTICATION ENDPOINTS ===
 
