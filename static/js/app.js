@@ -1,3 +1,5 @@
+// SkillSync/static/js/app.js
+
 // ===================================================
 // === AUDIO RECORDER LOGIC (ALL PAGES) ===
 // ===================================================
@@ -5,10 +7,13 @@
 // This block runs on the Interview, Competition, and Soft Skills pages
 if (document.title.includes("Mock Interview") || document.title.includes("Competition Practice") || document.title.includes("Soft Skills")) {
     
+    console.log("Audio Recorder JS loaded."); // Check F12 Console
+
     // --- DOM Element References ---
     const startBtn = document.getElementById('start-record-btn');
     const stopBtn = document.getElementById('stop-record-btn');
     const rerecordBtn = document.getElementById('re-record-btn');
+    const playbackBtn = document.getElementById('playback-btn');
     const getFeedbackBtn = document.getElementById('get-feedback-btn');
 
     const idleStateDiv = document.getElementById('idle-state');
@@ -17,11 +22,13 @@ if (document.title.includes("Mock Interview") || document.title.includes("Compet
     
     const loadingSpinner = document.getElementById('loading-spinner');
     const feedbackSection = document.getElementById('feedback-section');
+    const audioPlayer = document.getElementById('audio-playback'); // The new <audio> element
 
     // --- Audio Recording Variables ---
     let mediaRecorder;
     let audioChunks = [];
     let audioBlob;
+    let audioUrl; // URL for playback
     let timerInterval;
     let seconds = 0;
 
@@ -33,33 +40,33 @@ if (document.title.includes("Mock Interview") || document.title.includes("Compet
     async function startRecording() {
         console.log("Attempting to start recording...");
         try {
-            // Request microphone access
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             console.log("Microphone access granted.");
             
-            // Initialize MediaRecorder
             mediaRecorder = new MediaRecorder(stream);
-            
-            // --- Event Handlers for MediaRecorder ---
+            audioChunks = []; // Clear old chunks
+
             mediaRecorder.ondataavailable = (event) => {
                 audioChunks.push(event.data);
             };
 
             mediaRecorder.onstop = () => {
-                console.log("Recording stopped.");
-                // Combine audio chunks into a single Blob
+                console.log("Recording stopped. Audio chunks:", audioChunks.length);
                 audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                audioChunks = []; // Clear chunks for next recording
                 
-                // Stop microphone tracks
+                if (audioUrl) {
+                    URL.revokeObjectURL(audioUrl);
+                }
+                
+                audioUrl = URL.createObjectURL(audioBlob);
+                audioPlayer.src = audioUrl;
+                console.log("Audio blob and playback URL created.");
+
                 stream.getTracks().forEach(track => track.stop());
             };
 
-            // Start recording
             mediaRecorder.start();
             console.log("Recorder state:", mediaRecorder.state);
-            
-            // --- UI Updates for "Recording" state ---
             updateUIState('recording');
             startTimer();
 
@@ -76,20 +83,35 @@ if (document.title.includes("Mock Interview") || document.title.includes("Compet
         if (mediaRecorder && mediaRecorder.state === 'recording') {
             mediaRecorder.stop();
         }
-        updateUIState('stopped');
+        updateUIState('stopped'); // Go to the new 'stopped' state
         stopTimer();
+    }
+    
+    /**
+     * Plays the recorded audio.
+     */
+    function playRecording() {
+        if (audioPlayer && audioPlayer.src) {
+            console.log("Playing audio...");
+            audioPlayer.play();
+        } else {
+            console.error("No audio source to play.");
+        }
     }
 
     /**
      * Resets the recording interface.
      */
     function reRecord() {
+        if (audioUrl) {
+            URL.revokeObjectURL(audioUrl); // Clean up memory
+            audioUrl = null;
+            audioPlayer.src = '';
+        }
         audioBlob = null;
-        updateUIState('idle');
+        updateUIState('idle'); // Go back to idle state
         resetTimer();
-        // Also clear old feedback
-        feedbackSection.innerHTML = '';
-        feedbackSection.classList.add('hidden');
+        feedbackSection.innerHTML = ''; // Clear old feedback
     }
 
     /**
@@ -101,31 +123,35 @@ if (document.title.includes("Mock Interview") || document.title.includes("Compet
             return;
         }
 
-        updateUIState('loading');
+        console.log("Getting AI feedback...");
+        updateUIState('loading'); // Show loading spinner
 
         const formData = new FormData();
         formData.append('audio_file', audioBlob, 'interview_answer.wav');
         
         let endpoint = '';
         let question = '';
+        let context = 'interview'; // Default context
 
         if (document.title.includes("Competition Practice")) {
             endpoint = '/process-competition-audio';
             question = document.getElementById('competition-topic').innerText;
-            formData.append('context', 'competition');
+            context = 'competition';
         
         } else if (document.title.includes("Soft Skills")) {
             endpoint = '/process-soft-skills-audio';
             question = document.getElementById('skill-prompt').innerText;
-            formData.append('context', 'soft-skills');
+            context = 'soft-skills';
 
         } else { // Default to Mock Interview
             endpoint = '/process-interview-audio';
-            question = document.querySelector('h3.text-xl').innerText; // Get question from page
-            formData.append('context', 'interview');
+            question = document.querySelector('h3.text-xl').innerText;
         }
         
         formData.append('question', question);
+        formData.append('context', context);
+        
+        console.log(`Sending audio to ${endpoint}... THIS WILL TAKE A LONG TIME.`);
 
         try {
             const response = await fetch(endpoint, {
@@ -133,20 +159,22 @@ if (document.title.includes("Mock Interview") || document.title.includes("Compet
                 body: formData,
             });
 
+            console.log("Server responded.");
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorText = await response.text();
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
             }
 
             const feedbackData = await response.json();
             
             console.log('Feedback received:', feedbackData);
             displayFeedback(feedbackData); 
-            updateUIState('feedback');
+            updateUIState('feedback'); // Show feedback
 
         } catch (err) {
-            console.error('Error sending audio for feedback:', err);
-            alert('Failed to get feedback. Please try again.');
-            updateUIState('stopped');
+            console.error('Error getting feedback:', err);
+            alert(`Failed to get AI feedback. The server might be busy or an error occurred. Check the F12 console. Error: ${err.message}`);
+            updateUIState('stopped'); // Go back to 'stopped' state on error
         }
     }
 
@@ -154,36 +182,48 @@ if (document.title.includes("Mock Interview") || document.title.includes("Compet
      * Updates the UI elements based on the current state.
      */
     function updateUIState(state) {
+        console.log("Updating UI state to:", state);
+        
+        // Hide all conditional elements
         idleStateDiv.classList.add('hidden');
         recordingStateDiv.classList.add('hidden');
+        loadingSpinner.classList.add('hidden');
+        feedbackSection.classList.add('hidden');
+        
         startBtn.classList.add('hidden');
         stopBtn.classList.add('hidden');
-        loadingSpinner.classList.add('hidden');
-        feedbackSection.classList.add('hidden'); // Hide feedback section by default
-
-        rerecordBtn.disabled = true;
-        getFeedbackBtn.disabled = true;
+        rerecordBtn.classList.add('hidden');
+        playbackBtn.classList.add('hidden');
+        getFeedbackBtn.classList.add('hidden');
 
         if (state === 'idle') {
             idleStateDiv.classList.remove('hidden');
             startBtn.classList.remove('hidden');
-        } else if (state === 'recording') {
+        } 
+        else if (state === 'recording') {
             recordingStateDiv.classList.remove('hidden');
             stopBtn.classList.remove('hidden');
-        } else if (state === 'stopped') {
-            idleStateDiv.classList.remove('hidden');
-            rerecordBtn.disabled = false;
-            getFeedbackBtn.disabled = false;
-        } else if (state === 'loading') {
+        } 
+        else if (state === 'stopped') {
+            idleStateDiv.classList.remove('hidden'); // Show mic icon again
+            rerecordBtn.classList.remove('hidden');
+            playbackBtn.classList.remove('hidden');
+            getFeedbackBtn.classList.remove('hidden');
+        } 
+        else if (state === 'loading') {
             loadingSpinner.classList.remove('hidden');
-        } else if (state === 'feedback') {
-            feedbackSection.classList.remove('hidden'); // Show feedback
-            rerecordBtn.disabled = false; // Allow re-recording
+        } 
+        else if (state === 'feedback') {
+            feedbackSection.classList.remove('hidden');
+            rerecordBtn.classList.remove('hidden');
+            playbackBtn.classList.remove('hidden');
+            getFeedbackBtn.classList.remove('hidden');
         }
     }
 
     // --- Timer Functions ---
     function startTimer() {
+        if(timerInterval) clearInterval(timerInterval); // Clear old timer
         seconds = 0;
         timerDisplay.textContent = '00:00';
         timerInterval = setInterval(() => {
@@ -192,10 +232,12 @@ if (document.title.includes("Mock Interview") || document.title.includes("Compet
             const secs = (seconds % 60).toString().padStart(2, '0');
             timerDisplay.textContent = `${mins}:${secs}`;
         }, 1000);
+        console.log("Timer started.");
     }
 
     function stopTimer() {
         clearInterval(timerInterval);
+        console.log("Timer stopped.");
     }
 
     function resetTimer() {
@@ -208,10 +250,6 @@ if (document.title.includes("Mock Interview") || document.title.includes("Compet
      * Renders feedback data into the DOM.
      */
     function displayFeedback(data) {
-        // Re-using the feedback UI from mock_interview.html for all recorder pages
-        // You'll need to add this HTML structure to competition.html and soft_skills.html
-        
-        // Check if feedback section exists, if not, create it
         if (!feedbackSection.innerHTML.trim()) {
             feedbackSection.innerHTML = `
             <div class="bg-white p-8 rounded-lg shadow-sm">
@@ -243,41 +281,44 @@ if (document.title.includes("Mock Interview") || document.title.includes("Compet
 
         const scoreEl = document.getElementById('feedback-score');
         const ratingEl = document.getElementById('feedback-rating');
+        if (scoreEl) scoreEl.textContent = `${data.overall_score}%`;
         
-        scoreEl.textContent = `${data.overall_score}%`;
-        if (data.overall_score >= 85) {
-            ratingEl.textContent = 'Excellent';
-            ratingEl.className = 'text-2xl font-semibold text-green-600';
-            scoreEl.className = 'text-5xl font-bold text-green-600';
-        } else if (data.overall_score >= 70) {
-            ratingEl.textContent = 'Good';
-            ratingEl.className = 'text-2xl font-semibold text-blue-600';
-            scoreEl.className = 'text-5xl font-bold text-blue-600';
-        } else {
-            ratingEl.textContent = 'Needs Improvement';
-            ratingEl.className = 'text-2xl font-semibold text-yellow-600';
-            scoreEl.className = 'text-5xl font-bold text-yellow-600';
+        if (ratingEl) {
+            if (data.overall_score >= 85) {
+                ratingEl.textContent = 'Excellent';
+                ratingEl.className = 'text-2xl font-semibold text-green-600';
+            } else if (data.overall_score >= 70) {
+                ratingEl.textContent = 'Good';
+                ratingEl.className = 'text-2xl font-semibold text-blue-600';
+            } else {
+                ratingEl.textContent = 'Needs Improvement';
+                ratingEl.className = 'text-2xl font-semibold text-yellow-600';
+            }
         }
 
-        const tableBody = document.getElementById('feedback-analysis-table').getElementsByTagName('tbody')[0];
-        tableBody.innerHTML = '';
-        for (const [key, value] of Object.entries(data.analysis)) {
-            const row = tableBody.insertRow();
-            row.innerHTML = `
-                <td class="py-2 pr-4 font-medium text-gray-700">${key}</td>
-                <td class="py-2 w-full">
-                    <div class="w-full bg-gray-200 rounded-full h-2.5">
-                        <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${value}%"></div>
-                    </div>
-                </td>
-                <td class="py-2 pl-4 font-medium text-gray-900">${value}%</td>
-            `;
+        const tableBody = document.getElementById('feedback-analysis-table')?.getElementsByTagName('tbody')[0];
+        if (tableBody) {
+            tableBody.innerHTML = '';
+            for (const [key, value] of Object.entries(data.analysis)) {
+                const row = tableBody.insertRow();
+                row.innerHTML = `
+                    <td class="py-2 pr-4 font-medium text-gray-700">${key}</td>
+                    <td class="py-2 w-full">
+                        <div class="w-full bg-gray-200 rounded-full h-2.5">
+                            <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${value}%"></div>
+                        </div>
+                    </td>
+                    <td class="py-2 pl-4 font-medium text-gray-900">${value}%</td>
+                `;
+            }
         }
 
-        document.getElementById('feedback-transcript').textContent = data.transcript;
+        const transcriptEl = document.getElementById('feedback-transcript');
+        if (transcriptEl) transcriptEl.textContent = data.transcript;
 
         function populateList(listId, items) {
             const ul = document.getElementById(listId);
+            if (!ul) return;
             ul.innerHTML = '';
             if (items && items.length > 0) {
                 items.forEach(item => {
@@ -296,15 +337,18 @@ if (document.title.includes("Mock Interview") || document.title.includes("Compet
     }
 
     // --- Event Listeners ---
-    // Make sure buttons exist before adding listeners
     if(startBtn) startBtn.addEventListener('click', startRecording);
     if(stopBtn) stopBtn.addEventListener('click', stopRecording);
     if(rerecordBtn) rerecordBtn.addEventListener('click', reRecord);
+    if(playbackBtn) playbackBtn.addEventListener('click', playRecording); // New listener
     if(getFeedbackBtn) getFeedbackBtn.addEventListener('click', getFeedback);
 
     // --- Initial State ---
-    updateUIState('idle');
+    if (startBtn) { // Only run if we are on a recorder page
+        updateUIState('idle'); // Set the initial state
+    }
 }
+
 
 // ===================================================
 // === APTITUDE QUIZ LOGIC ===
@@ -312,6 +356,8 @@ if (document.title.includes("Mock Interview") || document.title.includes("Compet
 
 if (document.title.includes("Aptitude Test") && window.location.pathname.includes("/aptitude/quiz")) {
     
+    console.log("Aptitude Quiz JS loaded.");
+
     // --- Global Quiz Variables ---
     let allQuestions = [];
     let userAnswers = {};
@@ -476,11 +522,14 @@ if (document.title.includes("Aptitude Test") && window.location.pathname.include
     loadQuestions();
 }
 
+
 // ===================================================
 // === ANALYTICS PAGE LOGIC ===
 // ===================================================
 
 if (document.title.includes("Analytics")) {
+
+    console.log("Analytics JS loaded.");
 
     // --- Tab Handling ---
     const tabButtons = document.querySelectorAll('.tab-btn');
@@ -506,7 +555,7 @@ if (document.title.includes("Analytics")) {
     
     const radarCanvas = document.getElementById('skillsRadarChart');
     const skillBreakdownEl = document.getElementById('skill-breakdown-list');
-    const historyTableEl = document.getElementById('session-history-table');
+    const historyTableEl = document.getElementById('session-history-table')?.getElementsByTagName('tbody')[0];
     const achievementsGridEl = document.getElementById('achievements-grid');
 
 
@@ -591,7 +640,7 @@ if (document.title.includes("Analytics")) {
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
-                scales: { r: { beginAtZero: true, max: 100 } }
+                scales: { r: { beginAtZero: true, max: 100, ticks: { display: false } } }
             }
         });
     }
