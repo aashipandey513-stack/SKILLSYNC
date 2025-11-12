@@ -18,7 +18,10 @@ from typing import List
 import uvicorn
 import shutil
 import os
-
+from pydantic import BaseModel, EmailStr
+from utils.database import db  # Import our database connection
+from utils.auth import hash_password, verify_password
+import datetime
 # --- AI Utility Module Imports ---
 from utils import speech_to_text
 from utils import nlp_feedback
