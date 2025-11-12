@@ -7,13 +7,29 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* You can add minor custom styles here */
         body { background-color: #f7f9fc; }
     </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-100 flex">
 
-    <div class="p-8">
+    <nav class="w-64 bg-white p-6 shadow-md hidden lg:block">
+        <h1 class="text-2xl font-bold text-gray-900 mb-8">SKILLSYNC</h1>
+        <ul class="space-y-4">
+            <li><a href="/dashboard" class="text-blue-600 font-bold"><i class="fas fa-home w-6"></i>Dashboard</a></li>
+            <li><a href="/mock-interview" class="text-gray-600 hover:text-blue-600 font-medium"><i class="fas fa-microphone-alt w-6"></i>Mock Interview</a></li>
+            <li><a href="/competition" class="text-gray-600 hover:text-blue-600 font-medium"><i class="fas fa-users w-6"></i>Competition</a></li>
+            <li><a href="/soft-skills" class="text-gray-600 hover:text-blue-600 font-medium"><i class="fas fa-comment-dots w-6"></i>Soft Skills</a></li>
+            <li><a href="/aptitude" class="text-gray-600 hover:text-blue-600 font-medium"><i class="fas fa-brain w-6"></i>Aptitude Test</a></li>
+            <li><a href="/analytics" class="text-gray-600 hover:text-blue-600 font-medium"><i class="fas fa-chart-line w-6"></i>Progress</a></li>
+            
+            <li class="pt-4 border-t mt-4">
+                <a href="/logout" class="text-gray-600 hover:text-red-600 font-medium">
+                    <i class="fas fa-sign-out-alt w-6"></i>Logout
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <div class="flex-1 p-8">
         <header class="mb-6">
             <h1 class="text-3xl font-bold text-gray-900">SKILLSYNC</h1>
             <p class="text-sm text-gray-600">Master Your Interview Skills</p>
