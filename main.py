@@ -1,5 +1,7 @@
 # SkillSync/main.py
-
+from fastapi import UploadFile, File
+import shutil
+import os
 from fastapi import FastAPI, Request, Form, Depends, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -96,5 +98,82 @@ async def handle_demo_login():
     return RedirectResponse(url="/dashboard", status_code=303)
 
 # --- Main entry point for running the app ---
+if __name__ == "__main__":
+   TEMP_AUDIO_DIR = "temp_audio"
+os.makedirs(TEMP_AUDIO_DIR, exist_ok=True)
+
+
+@app.post("/process-interview-audio")
+async def process_interview_audio(
+    audio_file: UploadFile = File(...),
+    question: str = Form(...),
+    type: str = Form(...)
+):
+    """
+    Receives recorded audio, saves it, and sends it for AI processing.
+    """
+    print(f"Received audio for question: {question} (Type: {type})")
+
+    # --- 1. Save the audio file ---
+    # We save the file to disk so our AI models can read it.
+    file_path = os.path.join(TEMP_AUDIO_DIR, audio_file.filename)
+    
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(audio_file.file, buffer)
+        print(f"Audio file saved to: {file_path}")
+
+        # --- 2. TODO: Speech-to-Text (Whisper) ---
+        # This is where you will call your utils/speech_to_text.py module
+        # transcript = speech_to_text.transcribe(file_path)
+        # For now, we'll use a mock transcript.
+        transcript = "Thank you for the opportunity, I am currently pursuing my degree in Computer Science..."
+        print(f"Mock Transcript: {transcript}")
+
+        # --- 3. TODO: NLP Feedback (Hugging Face) ---
+        # This is where you will call your utils/nlp_feedback.py module
+        # feedback = nlp_feedback.get_analysis(transcript)
+        # For now, we'll use mock feedback based on your PDF (Page 6 & 7)
+        mock_feedback = {
+            "overall_score": 75,
+            "transcript": transcript,
+            "analysis": {
+                "Clarity": 80,
+                "Structure": 75,
+                "Confidence": 70,
+                "Relevance": 78,
+                "Grammar": 85
+            },
+            "strengths": [
+                "Clear introduction and background",
+                "Good use of specific examples",
+                "Strong conclusion linking skills to company needs"
+            ],
+            "improvements": [
+                "Add more details about specific technical skills",
+                "Reduce filler words like 'um' and 'actually'",
+                "Speak slightly slower for better clarity"
+            ],
+            "suggestions": [
+                "Research the company's recent projects and mention them",
+                "Practice the STAR method for behavioral questions"
+            ]
+        }
+        
+        # --- 4. Clean up the audio file ---
+        os.remove(file_path)
+
+        # --- 5. Return the feedback ---
+        return mock_feedback
+
+    except Exception as e:
+        print(f"Error processing audio: {e}")
+        # Clean up in case of error
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        raise HTTPException(status_code=500, detail="Error processing audio file.")
+
+
+# ... (keep your __main__ entry point at the bottom)
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
