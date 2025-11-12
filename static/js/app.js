@@ -1,7 +1,9 @@
-// SkillSync/static/js/app.js
+// ===================================================
+// === AUDIO RECORDER LOGIC (ALL PAGES) ===
+// ===================================================
 
-// Check if the script is running on the correct page
-if (document.title.includes("Mock Interview")) {
+// This block runs on the Interview, Competition, and Soft Skills pages
+if (document.title.includes("Mock Interview") || document.title.includes("Competition Practice") || document.title.includes("Soft Skills")) {
     
     // --- DOM Element References ---
     const startBtn = document.getElementById('start-record-btn');
@@ -29,9 +31,11 @@ if (document.title.includes("Mock Interview")) {
      * Starts the audio recording process.
      */
     async function startRecording() {
+        console.log("Attempting to start recording...");
         try {
             // Request microphone access
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            console.log("Microphone access granted.");
             
             // Initialize MediaRecorder
             mediaRecorder = new MediaRecorder(stream);
@@ -42,6 +46,7 @@ if (document.title.includes("Mock Interview")) {
             };
 
             mediaRecorder.onstop = () => {
+                console.log("Recording stopped.");
                 // Combine audio chunks into a single Blob
                 audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
                 audioChunks = []; // Clear chunks for next recording
@@ -52,6 +57,7 @@ if (document.title.includes("Mock Interview")) {
 
             // Start recording
             mediaRecorder.start();
+            console.log("Recorder state:", mediaRecorder.state);
             
             // --- UI Updates for "Recording" state ---
             updateUIState('recording');
@@ -59,7 +65,7 @@ if (document.title.includes("Mock Interview")) {
 
         } catch (err) {
             console.error('Error accessing microphone:', err);
-            alert('Could not access microphone. Please ensure permission is granted.');
+            alert('Could not access microphone. Please ensure permission is granted in your browser (check the lock icon in the URL bar).');
         }
     }
 
@@ -81,6 +87,9 @@ if (document.title.includes("Mock Interview")) {
         audioBlob = null;
         updateUIState('idle');
         resetTimer();
+        // Also clear old feedback
+        feedbackSection.innerHTML = '';
+        feedbackSection.classList.add('hidden');
     }
 
     /**
@@ -92,45 +101,37 @@ if (document.title.includes("Mock Interview")) {
             return;
         }
 
-        // --- UI Update for "Loading" state ---
         updateUIState('loading');
 
-        // Create form data to send
         const formData = new FormData();
         formData.append('audio_file', audioBlob, 'interview_answer.wav');
         
-        // You can add more data
-        formData.append('question', 'Tell me about yourself...');
-        formData.append('type', 'HR');
+        let endpoint = '';
+        let question = '';
+
+        if (document.title.includes("Competition Practice")) {
+            endpoint = '/process-competition-audio';
+            question = document.getElementById('competition-topic').innerText;
+            formData.append('context', 'competition');
+        
+        } else if (document.title.includes("Soft Skills")) {
+            endpoint = '/process-soft-skills-audio';
+            question = document.getElementById('skill-prompt').innerText;
+            formData.append('context', 'soft-skills');
+
+        } else { // Default to Mock Interview
+            endpoint = '/process-interview-audio';
+            question = document.querySelector('h3.text-xl').innerText; // Get question from page
+            formData.append('context', 'interview');
+        }
+        
+        formData.append('question', question);
 
         try {
-            // --- API Call to FastAPI Backend ---
-let endpoint = '/process-interview-audio';
-let question = 'Tell me about yourself...'; // Default question
-
-if (document.title.includes("Competition Practice")) {
-    endpoint = '/process-competition-audio';
-    question = document.getElementById('competition-topic').innerText;
-    formData.append('context', 'competition');
-
-} else if (document.title.includes("Soft Skills")) {
-    endpoint = '/process-soft-skills-audio';
-    question = document.getElementById('skill-prompt').innerText;
-    formData.append('context', 'soft-skills');
-
-} else { // Default to Mock Interview
-    endpoint = '/process-interview-audio';
-    // question = document.getElementById('interview-question').innerText; // (If you make it dynamic)
-    formData.append('context', 'interview');
-}
-
-// Add the question to the form data
-formData.append('question', question);
-
-const response = await fetch(endpoint, {
-    method: 'POST',
-    body: formData,
-});
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                body: formData,
+            });
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -138,53 +139,45 @@ const response = await fetch(endpoint, {
 
             const feedbackData = await response.json();
             
-            // --- UI Update for "Feedback" state ---
             console.log('Feedback received:', feedbackData);
-            // We will build the function to display this data next
             displayFeedback(feedbackData); 
             updateUIState('feedback');
 
         } catch (err) {
             console.error('Error sending audio for feedback:', err);
             alert('Failed to get feedback. Please try again.');
-            updateUIState('stopped'); // Revert to stopped state on error
+            updateUIState('stopped');
         }
     }
 
     /**
      * Updates the UI elements based on the current state.
-     * @param {'idle' | 'recording' | 'stopped' | 'loading' | 'feedback'} state
      */
     function updateUIState(state) {
-        // Default: Hide all conditional elements
         idleStateDiv.classList.add('hidden');
         recordingStateDiv.classList.add('hidden');
         startBtn.classList.add('hidden');
         stopBtn.classList.add('hidden');
         loadingSpinner.classList.add('hidden');
-        feedbackSection.classList.add('hidden');
+        feedbackSection.classList.add('hidden'); // Hide feedback section by default
 
-        // Disable buttons by default
         rerecordBtn.disabled = true;
         getFeedbackBtn.disabled = true;
 
         if (state === 'idle') {
             idleStateDiv.classList.remove('hidden');
             startBtn.classList.remove('hidden');
-            rerecordBtn.disabled = true;
-            getFeedbackBtn.disabled = true;
         } else if (state === 'recording') {
             recordingStateDiv.classList.remove('hidden');
             stopBtn.classList.remove('hidden');
         } else if (state === 'stopped') {
-            idleStateDiv.classList.remove('hidden'); // Show mic icon again
-            startBtn.classList.add('hidden'); // Hide Start
+            idleStateDiv.classList.remove('hidden');
             rerecordBtn.disabled = false;
             getFeedbackBtn.disabled = false;
         } else if (state === 'loading') {
             loadingSpinner.classList.remove('hidden');
         } else if (state === 'feedback') {
-            feedbackSection.classList.remove('hidden');
+            feedbackSection.classList.remove('hidden'); // Show feedback
             rerecordBtn.disabled = false; // Allow re-recording
         }
     }
@@ -212,19 +205,46 @@ const response = await fetch(endpoint, {
     }
     
     /**
-     * (Placeholder) Renders feedback data into the DOM.
-     */
-    @param {object} data - The JSON feedback object from the backend.
+     * Renders feedback data into the DOM.
      */
     function displayFeedback(data) {
+        // Re-using the feedback UI from mock_interview.html for all recorder pages
+        // You'll need to add this HTML structure to competition.html and soft_skills.html
         
-        // --- 1. Populate Overall Performance ---
+        // Check if feedback section exists, if not, create it
+        if (!feedbackSection.innerHTML.trim()) {
+            feedbackSection.innerHTML = `
+            <div class="bg-white p-8 rounded-lg shadow-sm">
+                <div class="mb-6 pb-6 border-b">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Overall Performance</h3>
+                    <div class="flex items-center space-x-3">
+                        <span id="feedback-score" class="text-5xl font-bold text-blue-600">0%</span>
+                        <span id="feedback-rating" class="text-2xl font-semibold text-gray-600"></span>
+                    </div>
+                </div>
+                <div class="flex flex-col lg:flex-row gap-8">
+                    <div class="flex-grow">
+                        <h4 class="text-lg font-semibold text-gray-800 mb-3">Detailed Analysis</h4>
+                        <table id="feedback-analysis-table" class="w-full"><tbody class="text-sm"></tbody></table>
+                        <h4 class="text-lg font-semibold text-gray-800 mt-6 mb-3">Your Response (Transcribed)</h4>
+                        <p id="feedback-transcript" class="p-4 bg-gray-50 rounded-md text-gray-700 leading-relaxed"></p>
+                    </div>
+                    <div class="w-full lg:w-2/5 flex-shrink-0">
+                        <h4 class="text-lg font-semibold text-green-600 mb-3"><i class="fas fa-check-circle"></i> Strengths</h4>
+                        <ul id="feedback-strengths-list" class="list-disc list-inside space-y-1 text-gray-700"></ul>
+                        <h4 class="text-lg font-semibold text-yellow-600 mt-6 mb-3"><i class="fas fa-exclamation-triangle"></i> Areas to Improve</h4>
+                        <ul id="feedback-improvements-list" class="list-disc list-inside space-y-1 text-gray-700"></ul>
+                        <h4 class="text-lg font-semibold text-blue-600 mt-6 mb-3"><i class="fas fa-magic"></i> AI-Powered Suggestions</h4>
+                        <ul id="feedback-suggestions-list" class="list-disc list-inside space-y-1 text-gray-700"></ul>
+                    </div>
+                </div>
+            </div>`;
+        }
+
         const scoreEl = document.getElementById('feedback-score');
         const ratingEl = document.getElementById('feedback-rating');
         
         scoreEl.textContent = `${data.overall_score}%`;
-        
-        // Determine rating text and color
         if (data.overall_score >= 85) {
             ratingEl.textContent = 'Excellent';
             ratingEl.className = 'text-2xl font-semibold text-green-600';
@@ -239,10 +259,8 @@ const response = await fetch(endpoint, {
             scoreEl.className = 'text-5xl font-bold text-yellow-600';
         }
 
-        // --- 2. Populate Detailed Analysis Table ---
         const tableBody = document.getElementById('feedback-analysis-table').getElementsByTagName('tbody')[0];
-        tableBody.innerHTML = ''; // Clear old data
-        
+        tableBody.innerHTML = '';
         for (const [key, value] of Object.entries(data.analysis)) {
             const row = tableBody.insertRow();
             row.innerHTML = `
@@ -256,15 +274,11 @@ const response = await fetch(endpoint, {
             `;
         }
 
-        // --- 3. Populate Transcript ---
         document.getElementById('feedback-transcript').textContent = data.transcript;
 
-        // --- 4. Populate List Functions (Strengths, Improvements, Suggestions) ---
-        
-        /** Helper function to populate a <ul> */
         function populateList(listId, items) {
             const ul = document.getElementById(listId);
-            ul.innerHTML = ''; // Clear old items
+            ul.innerHTML = '';
             if (items && items.length > 0) {
                 items.forEach(item => {
                     const li = document.createElement('li');
@@ -272,30 +286,26 @@ const response = await fetch(endpoint, {
                     ul.appendChild(li);
                 });
             } else {
-                const li = document.createElement('li');
-                li.textContent = 'N/A';
-                li.className = 'text-gray-400';
-                ul.appendChild(li);
+                ul.innerHTML = '<li class="text-gray-400">N/A</li>';
             }
         }
         
         populateList('feedback-strengths-list', data.strengths);
         populateList('feedback-improvements-list', data.improvements);
         populateList('feedback-suggestions-list', data.suggestions);
-        
-        // --- 5. Show the feedback section ---
-        // This is handled by updateUIState('feedback') in the getFeedback function
     }
 
     // --- Event Listeners ---
-    startBtn.addEventListener('click', startRecording);
-    stopBtn.addEventListener('click', stopRecording);
-    rerecordBtn.addEventListener('click', reRecord);
-    getFeedbackBtn.addEventListener('click', getFeedback);
+    // Make sure buttons exist before adding listeners
+    if(startBtn) startBtn.addEventListener('click', startRecording);
+    if(stopBtn) stopBtn.addEventListener('click', stopRecording);
+    if(rerecordBtn) rerecordBtn.addEventListener('click', reRecord);
+    if(getFeedbackBtn) getFeedbackBtn.addEventListener('click', getFeedback);
 
     // --- Initial State ---
     updateUIState('idle');
 }
+
 // ===================================================
 // === APTITUDE QUIZ LOGIC ===
 // ===================================================
@@ -327,9 +337,6 @@ if (document.title.includes("Aptitude Test") && window.location.pathname.include
 
     // --- Core Functions ---
 
-    /**
-     * Fetches quiz questions from the backend API.
-     */
     async function loadQuestions() {
         try {
             const response = await fetch('/api/quiz-questions');
@@ -338,13 +345,12 @@ if (document.title.includes("Aptitude Test") && window.location.pathname.include
             allQuestions = await response.json();
             if (allQuestions.length === 0) throw new Error('No questions received');
             
-            // Initialize user answers object
             allQuestions.forEach((_, index) => {
                 userAnswers[index] = null;
             });
             
             renderQuestion(currentQuestionIndex);
-            startTimer();
+            startTimer(); // Start the timer *after* questions are loaded
         } catch (err) {
             console.error(err);
             questionEl.textContent = 'Error loading quiz. Please try again.';
@@ -352,9 +358,6 @@ if (document.title.includes("Aptitude Test") && window.location.pathname.include
         }
     }
 
-    /**
-     * Displays a specific question and its options.
-     */
     function renderQuestion(index) {
         if (index < 0 || index >= allQuestions.length) return;
         
@@ -365,7 +368,6 @@ if (document.title.includes("Aptitude Test") && window.location.pathname.include
         questionEl.textContent = q.question;
         optionsEl.innerHTML = ''; // Clear old options
 
-        // Create new option radio buttons
         q.options.forEach(option => {
             const label = document.createElement('label');
             label.className = 'block w-full p-4 border rounded-lg hover:bg-gray-50 cursor-pointer';
@@ -376,12 +378,10 @@ if (document.title.includes("Aptitude Test") && window.location.pathname.include
             radio.value = option;
             radio.className = 'mr-3';
             
-            // Check if this option was previously selected
             if (userAnswers[index] === option) {
                 radio.checked = true;
             }
 
-            // Save answer on change
             radio.addEventListener('change', () => {
                 userAnswers[index] = option;
             });
@@ -394,14 +394,10 @@ if (document.title.includes("Aptitude Test") && window.location.pathname.include
         updateNavButtons(index);
     }
 
-    /**
-     * Updates the state of the Prev/Next/Submit buttons.
-     */
     function updateNavButtons(index) {
         prevBtn.disabled = (index === 0);
         
         if (index === allQuestions.length - 1) {
-            // Last question
             nextBtn.classList.add('hidden');
             submitBtn.classList.remove('hidden');
         } else {
@@ -410,10 +406,9 @@ if (document.title.includes("Aptitude Test") && window.location.pathname.include
         }
     }
 
-    /**
-     * Starts the 30-minute countdown timer.
-     */
     function startTimer() {
+        if(timerInterval) clearInterval(timerInterval); // Clear any existing timer
+
         timerInterval = setInterval(() => {
             totalTime--;
             
@@ -424,21 +419,17 @@ if (document.title.includes("Aptitude Test") && window.location.pathname.include
             if (totalTime <= 0) {
                 clearInterval(timerInterval);
                 timerEl.textContent = '00:00';
-                submitTest(); // Auto-submit when time is up
+                submitTest();
             }
         }, 1000);
     }
 
-    /**
-     * Submits the completed quiz to the backend.
-     */
     async function submitTest() {
         clearInterval(timerInterval);
         
-        // Hide quiz, show loading
         quizContainerEl.classList.add('hidden');
         loadingEl.classList.remove('hidden');
-        prevBtn.parentElement.classList.add('hidden'); // Hide footer
+        prevBtn.parentElement.classList.add('hidden');
 
         try {
             const response = await fetch('/api/submit-quiz', {
@@ -451,7 +442,6 @@ if (document.title.includes("Aptitude Test") && window.location.pathname.include
             
             const result = await response.json();
             
-            // Show end state
             loadingEl.classList.add('hidden');
             endEl.classList.remove('hidden');
             quizScoreEl.textContent = `${result.score} / ${result.total}`;
@@ -459,8 +449,8 @@ if (document.title.includes("Aptitude Test") && window.location.pathname.include
         } catch (err) {
             console.error(err);
             loadingEl.classList.add('hidden');
-            quizContainerEl.classList.remove('hidden'); // Show quiz again
-            prevBtn.parentElement.classList.remove('hidden'); // Show footer
+            quizContainerEl.classList.remove('hidden');
+            prevBtn.parentElement.classList.remove('hidden');
             alert('Error submitting test. Please try again.');
         }
     }
@@ -480,11 +470,12 @@ if (document.title.includes("Aptitude Test") && window.location.pathname.include
         }
     });
 
-    submitBtn.addEventListener('click', ()Continue);
+    submitBtn.addEventListener('click', submitTest);
 
     // --- Initialize ---
     loadQuestions();
 }
+
 // ===================================================
 // === ANALYTICS PAGE LOGIC ===
 // ===================================================
@@ -497,17 +488,12 @@ if (document.title.includes("Analytics")) {
 
     tabButtons.forEach(button => {
         button.addEventListener('click', () => {
-            // Get tab name from data-tab attribute
             const tabName = button.dataset.tab;
 
-            // Deactivate all buttons
             tabButtons.forEach(btn => btn.classList.remove('tab-btn-active'));
-            // Activate clicked button
             button.classList.add('tab-btn-active');
 
-            // Hide all content
             tabContents.forEach(content => content.classList.remove('tab-content-active'));
-            // Show content for clicked tab
             document.getElementById(`tab-${tabName}`).classList.add('tab-content-active');
         });
     });
@@ -524,9 +510,6 @@ if (document.title.includes("Analytics")) {
     const achievementsGridEl = document.getElementById('achievements-grid');
 
 
-    /**
-     * Fetches all analytics data from the backend.
-     */
     async function loadAnalytics() {
         try {
             const response = await fetch('/api/analytics-data');
@@ -534,24 +517,20 @@ if (document.title.includes("Analytics")) {
             
             const data = await response.json();
             
-            // Tab 1: Progress
             renderPerformanceChart(data.performanceTrends);
             renderRecentActivity(data.recentActivity);
             renderWeekSummary(data.weekSummary);
             
-            // Tab 2: Skills
             renderSkillsRadar(data.skillsAnalysis.radar);
             renderSkillBreakdown(data.skillsAnalysis.breakdown);
 
-            // Tab 3: History
             renderSessionHistory(data.sessionHistory);
 
-            // Tab 4: Achievements
             renderAchievements(data.achievements);
 
         } catch (err) {
             console.error(err);
-            chartCanvas.parentElement.innerHTML = '<p class="text-red-500">Could not load chart data.</p>';
+            if(chartCanvas) chartCanvas.parentElement.innerHTML = '<p class="text-red-500">Could not load chart data.</p>';
         }
     }
 
@@ -569,7 +548,7 @@ if (document.title.includes("Analytics")) {
         });
     }
     function renderRecentActivity(activity) {
-        if (!activity || activity.length === 0) return;
+        if (!activity || activity.length === 0 || !activityListEl) return;
         activityListEl.innerHTML = '';
         activity.forEach(item => {
             let iconClass = item.module === 'Mock Interview' ? 'fa-microphone-alt text-blue-500' : 'fa-users text-purple-500';
@@ -590,8 +569,8 @@ if (document.title.includes("Analytics")) {
         });
     }
     function renderWeekSummary(summary) {
-        summarySessionsEl.textContent = summary.sessions;
-        summaryScoreEl.textContent = `${summary.avg_score}%`;
+        if (summarySessionsEl) summarySessionsEl.textContent = summary.sessions;
+        if (summaryScoreEl) summaryScoreEl.textContent = `${summary.avg_score}%`;
     }
 
     // --- TAB 2: SKILLS ANALYSIS ---
@@ -608,9 +587,6 @@ if (document.title.includes("Analytics")) {
                     backgroundColor: 'rgba(59, 130, 246, 0.2)',
                     borderColor: 'rgb(59, 130, 246)',
                     pointBackgroundColor: 'rgb(59, 130, 246)',
-                    pointBorderColor: '#fff',
-                    pointHoverBackgroundColor: '#fff',
-                    pointHoverBorderColor: 'rgb(59, 130, 246)'
                 }]
             },
             options: {
@@ -620,6 +596,7 @@ if (document.title.includes("Analytics")) {
         });
     }
     function renderSkillBreakdown(breakdown) {
+        if (!skillBreakdownEl) return;
         skillBreakdownEl.innerHTML = '';
         breakdown.forEach(skill => {
             let color = skill.rating === 'Excellent' ? 'bg-green-500' : 'bg-blue-500';
@@ -638,7 +615,7 @@ if (document.title.includes("Analytics")) {
 
     // --- TAB 3: SESSION HISTORY ---
     function renderSessionHistory(history) {
-        if (!history) return;
+        if (!historyTableEl) return;
         historyTableEl.innerHTML = '';
         history.forEach(session => {
             historyTableEl.innerHTML += `
@@ -655,7 +632,7 @@ if (document.title.includes("Analytics")) {
 
     // --- TAB 4: ACHIEVEMENTS ---
     function renderAchievements(achievements) {
-        if (!achievements) return;
+        if (!achievementsGridEl) return;
         achievementsGridEl.innerHTML = '';
         achievements.forEach(ach => {
             let color = ach.status === 'Completed' ? 'green' : 'gray';
