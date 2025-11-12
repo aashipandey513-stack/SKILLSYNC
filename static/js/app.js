@@ -491,11 +491,38 @@ if (document.title.includes("Aptitude Test") && window.location.pathname.include
 
 if (document.title.includes("Analytics")) {
 
+    // --- Tab Handling ---
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // Get tab name from data-tab attribute
+            const tabName = button.dataset.tab;
+
+            // Deactivate all buttons
+            tabButtons.forEach(btn => btn.classList.remove('tab-btn-active'));
+            // Activate clicked button
+            button.classList.add('tab-btn-active');
+
+            // Hide all content
+            tabContents.forEach(content => content.classList.remove('tab-content-active'));
+            // Show content for clicked tab
+            document.getElementById(`tab-${tabName}`).classList.add('tab-content-active');
+        });
+    });
+
     // --- DOM Elements ---
     const chartCanvas = document.getElementById('performanceChart');
     const activityListEl = document.getElementById('recent-activity-list');
     const summarySessionsEl = document.getElementById('summary-sessions');
     const summaryScoreEl = document.getElementById('summary-score');
+    
+    const radarCanvas = document.getElementById('skillsRadarChart');
+    const skillBreakdownEl = document.getElementById('skill-breakdown-list');
+    const historyTableEl = document.getElementById('session-history-table');
+    const achievementsGridEl = document.getElementById('achievements-grid');
+
 
     /**
      * Fetches all analytics data from the backend.
@@ -507,9 +534,20 @@ if (document.title.includes("Analytics")) {
             
             const data = await response.json();
             
+            // Tab 1: Progress
             renderPerformanceChart(data.performanceTrends);
             renderRecentActivity(data.recentActivity);
             renderWeekSummary(data.weekSummary);
+            
+            // Tab 2: Skills
+            renderSkillsRadar(data.skillsAnalysis.radar);
+            renderSkillBreakdown(data.skillsAnalysis.breakdown);
+
+            // Tab 3: History
+            renderSessionHistory(data.sessionHistory);
+
+            // Tab 4: Achievements
+            renderAchievements(data.achievements);
 
         } catch (err) {
             console.error(err);
@@ -517,85 +555,129 @@ if (document.title.includes("Analytics")) {
         }
     }
 
-    /**
-     * Renders the main performance line chart using Chart.js.
-     * 
-
-[Image of a Chart.js line graph showing performance trends]
-
-     */
+    // --- TAB 1: PROGRESS ---
     function renderPerformanceChart(chartData) {
         if (!chartCanvas) return;
-        
-        const ctx = chartCanvas.getContext('2d');
-        new Chart(ctx, {
-            type: 'line',
-            data: chartData, // Use data directly from API
+        new Chart(chartCanvas.getContext('2d'), {
+            type: 'line', data: chartData,
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 100
-                    }
-                },
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                    },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                    }
-                },
-                interaction: {
-                    mode: 'index',
-                    intersect: false,
-                },
+                responsive: true, maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true, max: 100 } },
+                plugins: { legend: { position: 'bottom' } },
+                interaction: { mode: 'index', intersect: false },
             }
         });
     }
-
-    /**
-     * Populates the "Recent Activity" list.
-     */
     function renderRecentActivity(activity) {
         if (!activity || activity.length === 0) return;
-        
-        activityListEl.innerHTML = ''; // Clear the placeholder
-
+        activityListEl.innerHTML = '';
         activity.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'flex justify-between items-center';
-            
-            let iconClass = 'fas fa-question';
-            if (item.module === 'Mock Interview') iconClass = 'fas fa-microphone-alt text-blue-500';
-            if (item.module === 'Competition') iconClass = 'fas fa-users text-purple-500';
-
-            div.innerHTML = `
-                <div class="flex items-center space-x-3">
-                    <i class="${iconClass}"></i>
-                    <div>
-                        <p class="font-semibold text-gray-800">${item.module}</p>
-                        <p class="text-xs text-gray-500">${item.type}</p>
+            let iconClass = item.module === 'Mock Interview' ? 'fa-microphone-alt text-blue-500' : 'fa-users text-purple-500';
+            activityListEl.innerHTML += `
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas ${iconClass}"></i>
+                        <div>
+                            <p class="font-semibold text-gray-800">${item.module}</p>
+                            <p class="text-xs text-gray-500">${item.type}</p>
+                        </div>
                     </div>
-                </div>
-                <div class="text-right">
-                    <p class="font-bold text-gray-900">${item.score}</p>
-                    <p class="text-xs text-gray-500">${item.date}</p>
-                </div>
-            `;
-            activityListEl.appendChild(div);
+                    <div class="text-right">
+                        <p class="font-bold text-gray-900">${item.score}</p>
+                        <p class="text-xs text-gray-500">${item.date}</p>
+                    </div>
+                </div>`;
         });
     }
-
-    /**
-     * Populates the "This Week's Summary" card.
-     */
     function renderWeekSummary(summary) {
         summarySessionsEl.textContent = summary.sessions;
         summaryScoreEl.textContent = `${summary.avg_score}%`;
+    }
+
+    // --- TAB 2: SKILLS ANALYSIS ---
+    function renderSkillsRadar(radarData) {
+        if (!radarCanvas) return;
+        new Chart(radarCanvas.getContext('2d'), {
+            type: 'radar',
+            data: {
+                labels: radarData.labels,
+                datasets: [{
+                    label: 'Your Skills',
+                    data: radarData.data,
+                    fill: true,
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    borderColor: 'rgb(59, 130, 246)',
+                    pointBackgroundColor: 'rgb(59, 130, 246)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgb(59, 130, 246)'
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: { r: { beginAtZero: true, max: 100 } }
+            }
+        });
+    }
+    function renderSkillBreakdown(breakdown) {
+        skillBreakdownEl.innerHTML = '';
+        breakdown.forEach(skill => {
+            let color = skill.rating === 'Excellent' ? 'bg-green-500' : 'bg-blue-500';
+            skillBreakdownEl.innerHTML += `
+                <div>
+                    <div class="flex justify-between mb-1">
+                        <span class="text-base font-medium text-gray-700">${skill.name}</span>
+                        <span class="text-sm font-medium text-gray-700">${skill.score}% - ${skill.rating}</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div class="${color} h-2.5 rounded-full" style="width: ${skill.score}%"></div>
+                    </div>
+                </div>`;
+        });
+    }
+
+    // --- TAB 3: SESSION HISTORY ---
+    function renderSessionHistory(history) {
+        if (!history) return;
+        historyTableEl.innerHTML = '';
+        history.forEach(session => {
+            historyTableEl.innerHTML += `
+                <tr class="text-sm">
+                    <td class="px-6 py-4 whitespace-nowrap">${session.date}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${session.module}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${session.type}</td>
+                    <td class="px-6 py-4 whitespace-nowrap font-medium">${session.score}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${session.duration}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${session.details}</td>
+                </tr>`;
+        });
+    }
+
+    // --- TAB 4: ACHIEVEMENTS ---
+    function renderAchievements(achievements) {
+        if (!achievements) return;
+        achievementsGridEl.innerHTML = '';
+        achievements.forEach(ach => {
+            let color = ach.status === 'Completed' ? 'green' : 'gray';
+            let progressHtml = ach.status === 'Completed'
+                ? `<p class="text-sm font-medium text-${color}-600">${ach.status}</p>`
+                : `<p class="text-sm font-medium text-yellow-600">${ach.status}</p>
+                   <div class="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                       <div class="bg-yellow-500 h-1.5 rounded-full" style="width: ${ach.progress}%"></div>
+                   </div>`;
+            
+            achievementsGridEl.innerHTML += `
+                <div class="bg-gray-50 rounded-lg p-5 flex items-center space-x-4">
+                    <div class="flex-shrink-0 w-16 h-16 rounded-full bg-${color}-100 flex items-center justify-center">
+                        <i class="fas ${ach.icon} text-3xl text-${color}-600"></i>
+                    </div>
+                    <div class="flex-grow">
+                        <h4 class="text-lg font-semibold text-gray-800">${ach.name}</h4>
+                        <p class="text-sm text-gray-500">${ach.desc}</p>
+                        <div class="mt-2">${progressHtml}</div>
+                    </div>
+                </div>`;
+        });
     }
 
     // --- Initialize ---
