@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soft Skills Practice - SKILLSYNC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="bg-gray-100 flex">
+
+    <nav class="w-64 bg-white p-6 shadow-md hidden lg:block">
+        <h1 class="text-2xl font-bold text-gray-900 mb-8">SKILLSYNC</h1>
+        <ul class="space-y-4">
+            <li><a href="/dashboard" class="text-gray-600 hover:text-blue-600 font-medium"><i class="fas fa-home w-6"></i>Dashboard</a></li>
+            <li><a href="/mock-interview" class="text-gray-600 hover:text-blue-600 font-medium"><i class="fas fa-microphone-alt w-6"></i>Mock Interview</a></li>
+            <li><a href="/competition" class="text-gray-600 hover:text-blue-600 font-medium"><i class="fas fa-users w-6"></i>Competition</a></li>
+            <li><a href="/soft-skills" class="text-blue-600 font-bold"><i class="fas fa-comment-dots w-6"></i>Soft Skills</a></li>
+            <li><a href="/aptitude" class="text-gray-600 hover:text-blue-600 font-medium"><i class="fas fa-brain w-6"></i>Aptitude Test</a></li>
+            <li><a href="/analytics" class="text-gray-600 hover:text-blue-600 font-medium"><i class="fas fa-chart-line w-6"></i>Progress</a></li>
+        </ul>
+    </nav>
+
+    <main class="flex-1 p-8">
+        <div class="max-w-4xl mx-auto">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-2">Soft Skills Practice</h2>
+            <p class="text-gray-600 mb-6">Practice vocabulary, grammar, and articulation</p>
+
+            <div class="flex space-x-4 mb-6">
+                <span class="px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-medium">Vocabulary</span>
+                <span class="px-4 py-2 bg-white text-gray-700 rounded-full text-sm font-medium border">Grammar</span>
+                <span class="px-4 py-2 bg-white text-gray-700 rounded-full text-sm font-medium border">Articulation</span>
+                <button class="px-4 py-2 bg-white text-gray-700 rounded-full text-sm font-medium border ml-auto">New Exercise</button>
+            </div>
+
+            <div class="mb-6">
+                <span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">Vocabulary Building</span>
+                <span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">Beginner</span>
+                <h3 id="skill-prompt" class="text-xl font-medium text-gray-900 mt-2">
+                    "Describe your ideal workplace using at least 5 advanced adjectives"
+                </h3>
+                <p class="p-3 bg-gray-50 text-gray-700 rounded-md mt-2 text-sm">
+                    <strong>Instructions:</strong> Speak clearly and focus on using diverse vocabulary. Avoid repetition and use appropriate professional language.
+                </p>
+            </div>
+
+            <div class="bg-white p-8 rounded-lg shadow-sm text-center">
+                <div id="idle-state">
+                    <i class="fas fa-microphone-alt text-5xl text-gray-400"></i>
+                    <p class="text-gray-500 mt-4">Click start to begin recording your response</p>
+                </div>
+                <div id="recording-state" class="hidden">
+                    <div class="waveform-placeholder h-20 w-full bg-gray-100 rounded-md flex items-center justify-center">
+                        <span class="text-red-500 font-bold">RECORDING...</span>
+                    </div>
+                    <p id="timer" class="text-gray-700 mt-2">00:00</p>
+                </div>
+            </div>
+
+            <div class="flex justify-between mt-6">
+                <button id="re-record-btn" class="px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-md hover:bg-gray-300" disabled>
+                    Re-record
+                </button>
+                <button id="start-record-btn" class="px-6 py-3 bg-gray-800 text-white font-semibold rounded-md hover:bg-gray-900">
+                    <i class="fas fa-record-vinyl"></i> Start Recording
+                </button>
+                <button id="stop-record-btn" class="px-6 py-3 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 hidden">
+                    <i class="fas fa-stop"></i> Stop Recording
+                </button>
+                <button id="get-feedback-btn" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700" disabled>
+                    Get AI Feedback
+                </button>
+            </div>
+            
+            <div id="loading-spinner" class="text-center p-8 hidden">
+                <i class="fas fa-spinner fa-spin text-4xl text-blue-600"></i>
+                <p class="text-gray-600 mt-4">Analyzing your response...</p>
+            </div>
+
+            <div id="feedback-section" class="mt-8 hidden">
+                </div>
+
+        </div>
+    </main>
+
+    <aside class="w-80 bg-white p-6 shadow-md hidden xl:block">
+        <div class="mb-6">
+            <h4 class="font-semibold text-gray-800 mb-2">Vocabulary Tips</h4>
+            <ul class="list-disc list-inside text-sm text-gray-600 space-y-1">
+                <li>Use specific instead of general words</li>
+                <li>Incorporate industry-specific terminology</li>
+                <li>Avoid filler words and repetition</li>
+                <li>Use transition words for better flow</li>
+                <li>Practice using new words in context</li>
+            </ul>
+        </div>
+        <div class="mb-6">
+            <h4 class="font-semibold text-gray-800 mb-2">Evaluation Criteria</h4>
+            <ul class="text-sm text-gray-600 space-y-1">
+                <li><strong>Vocabulary Range:</strong> 30%</li>
+                <li><strong>Grammar Accuracy:</strong> 25%</li>
+                <li><strong>Clarity:</strong> 20%</li>
+                <li><strong>Fluency:</strong> 15%</li>
+                <li><strong>Pronunciation:</strong> 10%</li>
+            </ul>
+        </div>
+        <div>
+            <h4 class="font-semibold text-gray-800 mb-2">Your Progress</h4>
+            <ul class="text-sm text-gray-600 space-y-1">
+                <li>Vocabulary Exercises: <strong>0/10</strong></li>
+                <li>Grammar Practice: <strong>0/8</strong></li>
+                <li>Articulation Drills: <strong>0/6</strong></li>
+            </ul>
+        </div>
+    </aside>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
