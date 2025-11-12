@@ -348,66 +348,65 @@ async def get_analytics_data():
     In a real app, this would query a database and aggregate results.
     """
     
-    # Mock data from Page 12 & 14
+    # --- Tab 1: Progress Over Time (Page 12) ---
     performance_trends = {
         "labels": ["Nov 1", "Nov 2", "Nov 3", "Nov 4", "Nov 5"],
         "datasets": [
-            {
-                "label": "Mock Interview",
-                "data": [65, 69, 70, 78, 75], # From graph
-                "borderColor": "#000000", # Black
-                "backgroundColor": "#000000",
-                "tension": 0.1
-            },
-            {
-                "label": "Competition",
-                "data": [0, 0, 45, 0, 68], # From graph
-                "borderColor": "#3B82F6", # Blue
-                "backgroundColor": "#3B82F6",
-                "tension": 0.4
-            },
-            {
-                "label": "Soft Skills",
-                "data": [0, 0, 0, 0, 80], # From graph
-                "borderColor": "#F59E0B", # Yellow
-                "backgroundColor": "#F59E0B",
-                "tension": 0.4
-            }
+            {"label": "Mock Interview", "data": [65, 69, 70, 78, 75], "borderColor": "#000000", "backgroundColor": "#000000", "tension": 0.1},
+            {"label": "Competition", "data": [0, 0, 45, 0, 68], "borderColor": "#3B82F6", "backgroundColor": "#3B82F6", "tension": 0.4},
+            {"label": "Soft Skills", "data": [0, 0, 0, 0, 80], "borderColor": "#F59E0B", "backgroundColor": "#F59E0B", "tension": 0.4}
         ]
     }
-    
-    # Mock data from Page 12
     recent_activity = [
-        {
-            "module": "Mock Interview",
-            "type": "Behavioral - 'Tell me about yourself'",
-            "score": "75%",
-            "date": "11/05"
-        },
-        {
-            "module": "Competition",
-            "type": "Public Speaking - 'Future of AI'",
-            "score": "68%",
-            "date": "11/04"
-        },
-        {
-            "module": "Mock Interview",
-            "type": "Technical - 'React hooks explanation'",
-            "score": "82%",
-            "date": "11/03"
-        }
+        {"module": "Mock Interview", "type": "Behavioral - 'Tell me about yourself'", "score": "75%", "date": "11/05"},
+        {"module": "Competition", "type": "Public Speaking - 'Future of AI'", "score": "68%", "date": "11/04"},
+        {"module": "Mock Interview", "type": "Technical - 'React hooks explanation'", "score": "82%", "date": "11/03"}
     ]
-    
-    # Mock data from Page 12
     week_summary = {
-        "sessions": 3, # Total from recent_activity
-        "avg_score": 75 # Average of 75, 68, 82
+        "sessions": 3,
+        "avg_score": 75
     }
+    
+    # --- Tab 2: Skills Analysis (Page 11) ---
+    skills_analysis = {
+        "radar": {
+            "labels": ["Communication", "Articulation", "Confidence", "Critical Thinking", "Grammar", "Problem Solving"],
+            "data": [84, 81, 79, 86, 89, 84]
+        },
+        "breakdown": [
+            {"name": "Communication", "score": 84, "rating": "Good"},
+            {"name": "Articulation", "score": 81, "rating": "Good"},
+            {"name": "Confidence", "score": 79, "rating": "Good"},
+            {"name": "Critical Thinking", "score": 86, "rating": "Excellent"},
+            {"name": "Grammar", "score": 89, "rating": "Excellent"},
+            {"name": "Problem Solving", "score": 84, "rating": "Good"}
+        ]
+    }
+
+    # --- Tab 3: Session History (Page 13) ---
+    session_history = [
+        {"date": "2024-11-05", "module": "Mock Interview", "type": "Behavioral", "score": "75%", "duration": "2:30", "details": "Tell me about yourself question"},
+        {"date": "2024-11-04", "module": "Competition", "type": "Public Speaking", "score": "68%", "duration": "4:15", "details": "Future of AI in education"},
+        {"date": "2024-11-03", "module": "Mock Interview", "type": "Technical", "score": "82%", "duration": "3:45", "details": "React hooks explanation"}
+    ]
+
+    # --- Tab 4: Achievements (Page 15) ---
+    achievements = [
+        {"name": "Practice Streak", "desc": "5 days in a row", "icon": "fa-fire", "status": "Completed", "progress": 100},
+        {"name": "Quick Learner", "desc": "Improved by 15% this week", "icon": "fa-star", "status": "Completed", "progress": 100},
+        {"name": "First Interview", "desc": "Completed first mock interview", "icon": "fa-check", "status": "Completed", "progress": 100},
+        {"name": "Perfect Score", "desc": "Get 100% on any practice", "icon": "fa-bullseye", "status": "In Progress", "progress": 0},
+        {"name": "Consistent Performer", "desc": "Complete 20 practice sessions", "icon": "fa-medal", "status": "12/20", "progress": 60},
+        {"name": "Master Communicator", "desc": "Reach 90% in all skills", "icon": "fa-brain", "status": "4/6", "progress": 66}
+    ]
     
     return {
         "performanceTrends": performance_trends,
         "recentActivity": recent_activity,
-        "weekSummary": week_summary
+        "weekSummary": week_summary,
+        "skillsAnalysis": skills_analysis,
+        "sessionHistory": session_history,
+        "achievements": achievements
     }
 # --- Main entry point for running the app ---
 if __name__ == "__main__":
