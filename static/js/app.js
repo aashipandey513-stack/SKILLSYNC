@@ -296,3 +296,192 @@ const response = await fetch(endpoint, {
     // --- Initial State ---
     updateUIState('idle');
 }
+// ===================================================
+// === APTITUDE QUIZ LOGIC ===
+// ===================================================
+
+if (document.title.includes("Aptitude Test") && window.location.pathname.includes("/aptitude/quiz")) {
+    
+    // --- Global Quiz Variables ---
+    let allQuestions = [];
+    let userAnswers = {};
+    let currentQuestionIndex = 0;
+    let timerInterval;
+    let totalTime = 1800; // 30 minutes * 60 seconds
+
+    // --- DOM Elements ---
+    const questionCounterEl = document.getElementById('question-counter');
+    const timerEl = document.getElementById('quiz-timer');
+    const categoryEl = document.getElementById('question-category');
+    const questionEl = document.getElementById('question-text');
+    const optionsEl = document.getElementById('options-container');
+    const quizContainerEl = document.getElementById('quiz-container');
+    
+    const loadingEl = document.getElementById('loading-state');
+    const endEl = document.getElementById('end-state');
+    const quizScoreEl = document.getElementById('quiz-score');
+
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const submitBtn = document.getElementById('submit-btn');
+
+    // --- Core Functions ---
+
+    /**
+     * Fetches quiz questions from the backend API.
+     */
+    async function loadQuestions() {
+        try {
+            const response = await fetch('/api/quiz-questions');
+            if (!response.ok) throw new Error('Failed to load questions');
+            
+            allQuestions = await response.json();
+            if (allQuestions.length === 0) throw new Error('No questions received');
+            
+            // Initialize user answers object
+            allQuestions.forEach((_, index) => {
+                userAnswers[index] = null;
+            });
+            
+            renderQuestion(currentQuestionIndex);
+            startTimer();
+        } catch (err) {
+            console.error(err);
+            questionEl.textContent = 'Error loading quiz. Please try again.';
+            optionsEl.innerHTML = '';
+        }
+    }
+
+    /**
+     * Displays a specific question and its options.
+     */
+    function renderQuestion(index) {
+        if (index < 0 || index >= allQuestions.length) return;
+        
+        const q = allQuestions[index];
+        
+        questionCounterEl.textContent = `Question ${index + 1} of ${allQuestions.length}`;
+        categoryEl.textContent = q.category;
+        questionEl.textContent = q.question;
+        optionsEl.innerHTML = ''; // Clear old options
+
+        // Create new option radio buttons
+        q.options.forEach(option => {
+            const label = document.createElement('label');
+            label.className = 'block w-full p-4 border rounded-lg hover:bg-gray-50 cursor-pointer';
+            
+            const radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.name = 'option';
+            radio.value = option;
+            radio.className = 'mr-3';
+            
+            // Check if this option was previously selected
+            if (userAnswers[index] === option) {
+                radio.checked = true;
+            }
+
+            // Save answer on change
+            radio.addEventListener('change', () => {
+                userAnswers[index] = option;
+            });
+
+            label.appendChild(radio);
+            label.appendChild(document.createTextNode(option));
+            optionsEl.appendChild(label);
+        });
+
+        updateNavButtons(index);
+    }
+
+    /**
+     * Updates the state of the Prev/Next/Submit buttons.
+     */
+    function updateNavButtons(index) {
+        prevBtn.disabled = (index === 0);
+        
+        if (index === allQuestions.length - 1) {
+            // Last question
+            nextBtn.classList.add('hidden');
+            submitBtn.classList.remove('hidden');
+        } else {
+            nextBtn.classList.remove('hidden');
+            submitBtn.classList.add('hidden');
+        }
+    }
+
+    /**
+     * Starts the 30-minute countdown timer.
+     */
+    function startTimer() {
+        timerInterval = setInterval(() => {
+            totalTime--;
+            
+            const minutes = Math.floor(totalTime / 60).toString().padStart(2, '0');
+            const seconds = (totalTime % 60).toString().padStart(2, '0');
+            timerEl.textContent = `${minutes}:${seconds}`;
+
+            if (totalTime <= 0) {
+                clearInterval(timerInterval);
+                timerEl.textContent = '00:00';
+                submitTest(); // Auto-submit when time is up
+            }
+        }, 1000);
+    }
+
+    /**
+     * Submits the completed quiz to the backend.
+     */
+    async function submitTest() {
+        clearInterval(timerInterval);
+        
+        // Hide quiz, show loading
+        quizContainerEl.classList.add('hidden');
+        loadingEl.classList.remove('hidden');
+        prevBtn.parentElement.classList.add('hidden'); // Hide footer
+
+        try {
+            const response = await fetch('/api/submit-quiz', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ answers: userAnswers })
+            });
+            
+            if (!response.ok) throw new Error('Failed to submit test');
+            
+            const result = await response.json();
+            
+            // Show end state
+            loadingEl.classList.add('hidden');
+            endEl.classList.remove('hidden');
+            quizScoreEl.textContent = `${result.score} / ${result.total}`;
+
+        } catch (err) {
+            console.error(err);
+            loadingEl.classList.add('hidden');
+            quizContainerEl.classList.remove('hidden'); // Show quiz again
+            prevBtn.parentElement.classList.remove('hidden'); // Show footer
+            alert('Error submitting test. Please try again.');
+        }
+    }
+
+    // --- Event Listeners ---
+    prevBtn.addEventListener('click', () => {
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            renderQuestion(currentQuestionIndex);
+        }
+    });
+
+    nextBtn.addEventListener('click', () => {
+        if (currentQuestionIndex < allQuestions.length - 1) {
+            currentQuestionIndex++;
+            renderQuestion(currentQuestionIndex);
+        }
+    });
+
+    submitBtn.addEventListener('click', ()Continue);
+
+    // --- Initialize ---
+    loadQuestions();
+}
