@@ -105,10 +105,26 @@ if (document.title.includes("Mock Interview")) {
 
         try {
             // --- API Call to FastAPI Backend ---
-            const response = await fetch('/process-interview-audio', {
-                method: 'POST',
-                body: formData,
-            });
+let endpoint = '/process-interview-audio';
+let question = 'Tell me about yourself...'; // Default question
+
+if (document.title.includes("Competition Practice")) {
+    endpoint = '/process-competition-audio';
+    question = document.getElementById('competition-topic').innerText;
+    // Also send the position
+    formData.append('position', document.getElementById('competition-position').innerText);
+} else {
+    // You can make the interview question dynamic too if you want
+    // question = document.getElementById('interview-question').innerText;
+}
+
+// Add the question to the form data
+formData.append('question', question);
+
+const response = await fetch(endpoint, {
+    method: 'POST',
+    body: formData,
+});
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
