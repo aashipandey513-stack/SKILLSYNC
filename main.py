@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
 import uvicorn
-
+from utils import speech_to_text
 # Import your utility modules (we will create these later)
 # from utils import speech_to_text, nlp_feedback, auth
 
@@ -110,33 +110,33 @@ async def process_interview_audio(
     type: str = Form(...)
 ):
     """
-    Receives recorded audio, saves it, and sends it for AI processing.
+    Receives recorded audio, transcribes it with Whisper, 
+    and returns (mock) feedback.
     """
     print(f"Received audio for question: {question} (Type: {type})")
-
-    # --- 1. Save the audio file ---
-    # We save the file to disk so our AI models can read it.
     file_path = os.path.join(TEMP_AUDIO_DIR, audio_file.filename)
     
     try:
+        # --- 1. Save the audio file ---
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(audio_file.file, buffer)
         print(f"Audio file saved to: {file_path}")
 
-        # --- 2. TODO: Speech-to-Text (Whisper) ---
-        # This is where you will call your utils/speech_to_text.py module
-        # transcript = speech_to_text.transcribe(file_path)
-        # For now, we'll use a mock transcript.
-        transcript = "Thank you for the opportunity, I am currently pursuing my degree in Computer Science..."
-        print(f"Mock Transcript: {transcript}")
+        # --- 2. Speech-to-Text (Whisper) ---
+        # This is NO LONGER MOCK!
+        # We call our new function from speech_to_text.py
+        transcript = speech_to_text.transcribe_audio(file_path)
+        
+        print("--- REAL TRANSCRIPT ---")
+        print(transcript)
+        print("-----------------------")
 
         # --- 3. TODO: NLP Feedback (Hugging Face) ---
-        # This is where you will call your utils/nlp_feedback.py module
-        # feedback = nlp_feedback.get_analysis(transcript)
-        # For now, we'll use mock feedback based on your PDF (Page 6 & 7)
+        # This part is still mock. We'll replace this next.
+        # We pass the REAL transcript into the mock data.
         mock_feedback = {
             "overall_score": 75,
-            "transcript": transcript,
+            "transcript": transcript,  # <-- Using the real transcript!
             "analysis": {
                 "Clarity": 80,
                 "Structure": 75,
@@ -168,11 +168,9 @@ async def process_interview_audio(
 
     except Exception as e:
         print(f"Error processing audio: {e}")
-        # Clean up in case of error
         if os.path.exists(file_path):
             os.remove(file_path)
         raise HTTPException(status_code=500, detail="Error processing audio file.")
-
 
 # ... (keep your __main__ entry point at the bottom)
 if __name__ == "__main__":
