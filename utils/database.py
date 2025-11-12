@@ -21,8 +21,6 @@ else:
         # This must match the name you put in your connection string
         db = client.SkillSyncDB 
         
-        # Test the connection (optional but recommended)
-        # await client.admin.command('ping') 
         print("MongoDB connection established.")
     except Exception as e:
         print(f"Error connecting to MongoDB: {e}")
