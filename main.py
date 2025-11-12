@@ -8,7 +8,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
 import uvicorn
 from utils import speech_to_text
-# Import your utility modules (we will create these later)
+from utils import nlp_feedback
 # from utils import speech_to_text, nlp_feedback, auth
 
 # Initialize the FastAPI app
@@ -110,8 +110,7 @@ async def process_interview_audio(
     type: str = Form(...)
 ):
     """
-    Receives recorded audio, transcribes it with Whisper, 
-    and returns (mock) feedback.
+    Receives recorded audio, transcribes it, and gets full NLP feedback.
     """
     print(f"Received audio for question: {question} (Type: {type})")
     file_path = os.path.join(TEMP_AUDIO_DIR, audio_file.filename)
@@ -123,55 +122,37 @@ async def process_interview_audio(
         print(f"Audio file saved to: {file_path}")
 
         # --- 2. Speech-to-Text (Whisper) ---
-        # This is NO LONGER MOCK!
-        # We call our new function from speech_to_text.py
         transcript = speech_to_text.transcribe_audio(file_path)
-        
-        print("--- REAL TRANSCRIPT ---")
-        print(transcript)
-        print("-----------------------")
+        print(f"Transcript: {transcript}")
 
-        # --- 3. TODO: NLP Feedback (Hugging Face) ---
-        # This part is still mock. We'll replace this next.
-        # We pass the REAL transcript into the mock data.
-        mock_feedback = {
-            "overall_score": 75,
-            "transcript": transcript,  # <-- Using the real transcript!
-            "analysis": {
-                "Clarity": 80,
-                "Structure": 75,
-                "Confidence": 70,
-                "Relevance": 78,
-                "Grammar": 85
-            },
-            "strengths": [
-                "Clear introduction and background",
-                "Good use of specific examples",
-                "Strong conclusion linking skills to company needs"
-            ],
-            "improvements": [
-                "Add more details about specific technical skills",
-                "Reduce filler words like 'um' and 'actually'",
-                "Speak slightly slower for better clarity"
-            ],
-            "suggestions": [
-                "Research the company's recent projects and mention them",
-                "Practice the STAR method for behavioral questions"
-            ]
-        }
+        # --- 3. NLP Feedback (REAL) ---
+        # This is NO LONGER MOCK!
+        # We replace the entire mock_feedback object with this function call.
+        if not transcript or "[Transcription Error" in transcript:
+            # Handle cases where transcription failed
+            feedback = {
+                "overall_score": 0,
+                "transcript": transcript,
+                "analysis": {},
+                "strengths": ["Transcription failed. Please try recording again."],
+                "improvements": ["Ensure your microphone is working and you speak clearly."],
+                "suggestions": []
+            }
+        else:
+            # Call our new nlp_feedback module
+            feedback = nlp_feedback.get_nlp_feedback(transcript, question)
         
         # --- 4. Clean up the audio file ---
         os.remove(file_path)
 
-        # --- 5. Return the feedback ---
-        return mock_feedback
+        # --- 5. Return the REAL feedback ---
+        return feedback
 
     except Exception as e:
         print(f"Error processing audio: {e}")
         if os.path.exists(file_path):
             os.remove(file_path)
         raise HTTPException(status_code=500, detail="Error processing audio file.")
-
 # ... (keep your __main__ entry point at the bottom)
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
