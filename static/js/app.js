@@ -192,12 +192,77 @@ if (document.title.includes("Mock Interview")) {
     /**
      * (Placeholder) Renders feedback data into the DOM.
      */
+    @param {object} data - The JSON feedback object from the backend.
+     */
     function displayFeedback(data) {
-        // We will build this in the next step based on Page 6 & 7
-        feedbackSection.innerHTML = `
-            <h3 class="text-xl font-semibold text-gray-800 mb-4">AI Feedback</h3>
-            <pre class="bg-gray-100 p-4 rounded">${JSON.stringify(data, null, 2)}</pre>
-        `;
+        
+        // --- 1. Populate Overall Performance ---
+        const scoreEl = document.getElementById('feedback-score');
+        const ratingEl = document.getElementById('feedback-rating');
+        
+        scoreEl.textContent = `${data.overall_score}%`;
+        
+        // Determine rating text and color
+        if (data.overall_score >= 85) {
+            ratingEl.textContent = 'Excellent';
+            ratingEl.className = 'text-2xl font-semibold text-green-600';
+            scoreEl.className = 'text-5xl font-bold text-green-600';
+        } else if (data.overall_score >= 70) {
+            ratingEl.textContent = 'Good';
+            ratingEl.className = 'text-2xl font-semibold text-blue-600';
+            scoreEl.className = 'text-5xl font-bold text-blue-600';
+        } else {
+            ratingEl.textContent = 'Needs Improvement';
+            ratingEl.className = 'text-2xl font-semibold text-yellow-600';
+            scoreEl.className = 'text-5xl font-bold text-yellow-600';
+        }
+
+        // --- 2. Populate Detailed Analysis Table ---
+        const tableBody = document.getElementById('feedback-analysis-table').getElementsByTagName('tbody')[0];
+        tableBody.innerHTML = ''; // Clear old data
+        
+        for (const [key, value] of Object.entries(data.analysis)) {
+            const row = tableBody.insertRow();
+            row.innerHTML = `
+                <td class="py-2 pr-4 font-medium text-gray-700">${key}</td>
+                <td class="py-2 w-full">
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${value}%"></div>
+                    </div>
+                </td>
+                <td class="py-2 pl-4 font-medium text-gray-900">${value}%</td>
+            `;
+        }
+
+        // --- 3. Populate Transcript ---
+        document.getElementById('feedback-transcript').textContent = data.transcript;
+
+        // --- 4. Populate List Functions (Strengths, Improvements, Suggestions) ---
+        
+        /** Helper function to populate a <ul> */
+        function populateList(listId, items) {
+            const ul = document.getElementById(listId);
+            ul.innerHTML = ''; // Clear old items
+            if (items && items.length > 0) {
+                items.forEach(item => {
+                    const li = document.createElement('li');
+                    li.textContent = item;
+                    ul.appendChild(li);
+                });
+            } else {
+                const li = document.createElement('li');
+                li.textContent = 'N/A';
+                li.className = 'text-gray-400';
+                ul.appendChild(li);
+            }
+        }
+        
+        populateList('feedback-strengths-list', data.strengths);
+        populateList('feedback-improvements-list', data.improvements);
+        populateList('feedback-suggestions-list', data.suggestions);
+        
+        // --- 5. Show the feedback section ---
+        // This is handled by updateUIState('feedback') in the getFeedback function
     }
 
     // --- Event Listeners ---
