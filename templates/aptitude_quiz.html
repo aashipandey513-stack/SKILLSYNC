@@ -13,47 +13,30 @@
         <div class="p-6 bg-gray-50 border-b flex justify-between items-center">
             <div>
                 <h2 class="text-xl font-semibold text-gray-800">Aptitude Test</h2>
-                <p id="question-counter" class="text-sm text-gray-600">Question 1 of 20</p>
+                <p id="question-counter" class="text-sm text-gray-600">Question 1 of 5</p>
             </div>
             <div id="quiz-timer" class="text-2xl font-bold text-red-600">
-                29:59
+                30:00
             </div>
         </div>
 
         <div class="p-8">
             <div id="quiz-container">
-                <p id="question-category" class="text-sm font-medium text-blue-600 mb-2">Quantitative Reasoning</p>
+                <p id="question-category" class="text-sm font-medium text-blue-600 mb-2">Loading...</p>
                 <p id="question-text" class="text-lg font-semibold text-gray-900 mb-6">
-                    If a train travels 300 km in 4 hours, what is its average speed in km/h?
+                    Loading questions...
                 </p>
-                
                 <div id="options-container" class="space-y-3">
-                    <label class="block w-full p-4 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                        <input type="radio" name="option" class="mr-3">
-                        60 km/h
-                    </label>
-                    <label class="block w-full p-4 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                        <input type="radio" name="option" class="mr-3">
-                        75 km/h
-                    </label>
-                    <label class="block w-full p-4 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                        <input type="radio" name="option" class="mr-3">
-                        80 km/h
-                    </label>
-                    <label class="block w-full p-4 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                        <input type="radio" name="option" class="mr-3">
-                        90 km/h
-                    </label>
-                </div>
+                    </div>
             </div>
 
-             <div id="loading-state" class="text-center p-16 hidden">
+            <div id="loading-state" class="text-center p-16 hidden">
                 <i class="fas fa-spinner fa-spin text-4xl text-blue-600"></i>
                 <p class="text-gray-600 mt-4">Submitting your test...</p>
             </div>
             <div id="end-state" class="text-center p-16 hidden">
                 <h3 class="text-2xl font-semibold">Test Completed!</h3>
-                <p class="text-gray-600 mt-2">Your score: <span id="quiz-score" class="font-bold text-xl">0/20</span></p>
+                <p class="text-gray-600 mt-2">Your score: <span id="quiz-score" class="font-bold text-xl">0/5</span></p>
                 <a href="/dashboard" class="mt-6 inline-block px-6 py-2 bg-blue-600 text-white rounded-md">Back to Dashboard</a>
             </div>
         </div>
