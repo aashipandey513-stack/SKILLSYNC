@@ -4,6 +4,7 @@ import torch
 from transformers import WhisperProcessor, WhisperForConditionalGeneration
 import librosa
 import io
+import traceback # Import the traceback module
 
 # --- Model Loading ---
 MODEL_NAME = "openai/whisper-base.en" 
@@ -16,6 +17,7 @@ try:
     print("Whisper model loaded successfully.")
 except Exception as e:
     print(f"CRITICAL: Error loading Whisper model: {e}")
+    traceback.print_exc() # Print full error
     processor = None
     model = None
 
@@ -31,7 +33,9 @@ def transcribe_audio(audio_file_path: str) -> str:
 
     try:
         # 1. Load and Resample Audio
+        print(f"Loading audio from: {audio_file_path}")
         speech_array, sampling_rate = librosa.load(audio_file_path, sr=16000)
+        print("Audio loaded and resampled successfully.")
 
         # 2. Process Audio
         input_features = processor(
@@ -43,15 +47,19 @@ def transcribe_audio(audio_file_path: str) -> str:
         input_features = input_features.to(DEVICE)
 
         # 3. Generate Transcription
+        print("Generating transcription...")
         predicted_ids = model.generate(input_features)
 
         # 4. Decode Tokens to Text
         transcription = processor.batch_decode(
             predicted_ids, skip_special_tokens=True
         )
-
+        print("Transcription complete.")
         return transcription[0].strip()
 
     except Exception as e:
-        print(f"Error during transcription: {e}")
+        # === THIS IS THE UPDATED LOGGING ===
+        print("--- ERROR DURING TRANSCRIPTION ---")
+        traceback.print_exc() # This will print the full, detailed error
+        print("------------------------------------")
         return f"[Transcription Error: {e}]"
