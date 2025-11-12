@@ -151,8 +151,8 @@ async def handle_login(response: Response, email: str = Form(...), password: str
         httponly=True,
         max_age=int(ACCESS_TOKEN_EXPIRE_MINUTES * 60),
         samesite="lax",
-        secure=True,
-        path="/"  # === ADD THIS LINE ===
+        # secure=True, # === REMOVED THIS LINE ===
+        path="/"
     )
     print("Successful login for:", email)
     return redirect_response
@@ -192,8 +192,8 @@ async def handle_signup(email: str = Form(...), password: str = Form(...)):
         httponly=True,
         max_age=int(ACCESS_TOKEN_EXPIRE_MINUTES * 60),
         samesite="lax",
-        secure=True,
-        path="/"  # === ADD THIS LINE ===
+        # secure=True, # === REMOVED THIS LINE ===
+        path="/"
     )
     return redirect_response
 
@@ -206,7 +206,7 @@ async def handle_demo_login():
 @app.get("/logout")
 async def handle_logout():
     response = RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
-    response.delete_cookie(key="access_token", path="/") # Also add path here
+    response.delete_cookie(key="access_token", path="/") # removed secure=True
     print("User logged out.")
     return response
 
