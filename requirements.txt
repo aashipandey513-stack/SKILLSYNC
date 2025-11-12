@@ -1,0 +1,13 @@
+# SkillSync/requirements.txt
+
+fastapi
+uvicorn[standard]
+jinja2
+python-multipart
+aiofiles
+
+# For AI/ML (Speech-to-Text and NLP)
+transformers
+torch
+# 'librosa' is needed for processing audio files
+librosa
