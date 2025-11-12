@@ -58,9 +58,34 @@ async def get_login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
 @app.get("/dashboard", response_class=HTMLResponse)
-async def get_dashboard(request: Request):
-    demo_user = {"name": "Demo", "level": "Beginner", "streak": 0, "member_since": "10/11/2025"}
-    return templates.TemplateResponse("dashboard.html", {"request": request, "user": demo_user})
+async def get_dashboard(request: Request, current_user_email: EmailStr = Depends(get_current_user_email)):
+   
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not connected")
+
+    # Fetch the user's data from the database
+    user_data = await db["users"].find_one({"email": current_user_email})
+
+    if not user_data:
+        # This shouldn't happen if the JWT is valid, but good to check
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Format the user's name (e.g., "test@example.com" -> "test")
+    user_name = user_data.get("email").split("@")[0]
+    
+    # Format the join date
+    created_at_date = user_data.get("created_at")
+    formatted_date = created_at_date.strftime("%m/%d/%Y") # Formats as MM/DD/YYYY
+
+    # TODO: We can make "level" and "streak" real later
+    user = {
+        "name": user_name.capitalize(),
+        "level": "Beginner", # This is still mock
+        "streak": 0,         # This is still mock
+        "member_since": formatted_date # This is now REAL
+    }
+    
+    return templates.TemplateResponse("dashboard.html", {"request": request, "user": user})
 @app.get("/mock-interview", response_class=HTMLResponse)
 async def get_mock_interview(request: Request):
     return templates.TemplateResponse("mock_interview.html", {"request": request})
