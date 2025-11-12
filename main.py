@@ -153,6 +153,62 @@ async def process_interview_audio(
         if os.path.exists(file_path):
             os.remove(file_path)
         raise HTTPException(status_code=500, detail="Error processing audio file.")
+@app.post("/process-competition-audio")
+async def process_competition_audio(
+    audio_file: UploadFile = File(...),
+    question: str = Form(...),      # This will be the debate topic
+    position: str = Form(...)       # This will be "Argue in FAVOR..."
+):
+    """
+    Receives recorded audio for the competition module.
+    """
+    print(f"Received audio for topic: {question}")
+    file_path = os.path.join(TEMP_AUDIO_DIR, audio_file.filename)
+    
+    try:
+        # --- 1. Save the audio file ---
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(audio_file.file, buffer)
+
+        # --- 2. Speech-to-Text (REUSED) ---
+        transcript = speech_to_text.transcribe_audio(file_path)
+        print(f"Transcript: {transcript}")
+
+        # --- 3. NLP Feedback (REUSED with different prompts) ---
+        if not transcript or "[Transcription Error" in transcript:
+            feedback = {
+                # ... (same error handling as the interview endpoint)
+            }
+        else:
+            # We call the *same* function, but the AI will get
+            # a different context (question) and provide different feedback.
+            # We'll customize the NLP module for this next.
+            
+            # For now, we can just call it directly
+            feedback = nlp_feedback.get_nlp_feedback(transcript, question)
+            
+            # --- FUTURE IMPROVEMENT ---
+            # We can pass a "context" to our NLP module, e.g.:
+            # feedback = nlp_feedback.get_nlp_feedback(
+            #    transcript, 
+            #    question, 
+            #    context="debate"
+            # )
+            # And that function would use different prompts.
+            # For now, it will work well just by changing the question.
+        
+        # --- 4. Clean up the audio file ---
+        os.remove(file_path)
+
+        # --- 5. Return the REAL feedback ---
+        return feedback
+
+    except Exception as e:
+        # ... (same error handling)
+        print(f"Error processing audio: {e}")
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        raise HTTPException(status_code=500, detail="Error processing audio file.")
 # ... (keep your __main__ entry point at the bottom)
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
