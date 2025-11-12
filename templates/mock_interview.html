@@ -20,10 +20,10 @@
             <li><a href="/aptitude" class="text-gray-600 hover:text-blue-600 font-medium"><i class="fas fa-brain w-6"></i>Aptitude Test</a></li>
             <li><a href="/analytics" class="text-gray-600 hover:text-blue-600 font-medium"><i class="fas fa-chart-line w-6"></i>Progress</a></li>
             <li class="pt-4 border-t mt-4">
-            <a href="/logout" class="text-gray-600 hover:text-red-600 font-medium">
-                <i class="fas fa-sign-out-alt w-6"></i>Logout
-            </a>
-        </li>
+                <a href="/logout" class="text-gray-600 hover:text-red-600 font-medium">
+                    <i class="fas fa-sign-out-alt w-6"></i>Logout
+                </a>
+            </li>
         </ul>
     </nav>
 
@@ -55,89 +55,61 @@
                     <p id="timer" class="text-gray-700 mt-2">00:00</p>
                 </div>
             </div>
+            
+            <audio id="audio-playback" class="hidden"></audio>
 
-            <div class="flex justify-between mt-6">
-                <button id="re-record-btn" class="px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-md hover:bg-gray-300" disabled>
-                    Re-record
-                </button>
-                
-                <button id="start-record-btn" class="px-6 py-3 bg-gray-800 text-white font-semibold rounded-md hover:bg-gray-900">
-                    <i class="fas fa-record-vinyl"></i> Start Recording
-                </button>
-                
-                <button id="stop-record-btn" class="px-6 py-3 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 hidden">
-                    <i class="fas fa-stop"></i> Stop Recording
-                </button>
-
-                <button id="get-feedback-btn" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700" disabled>
-                    Get AI Feedback
-                </button>
+            <div class="flex justify-between items-center mt-6">
+                <div class="flex space-x-4">
+                    <button id="re-record-btn" class="px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-md hover:bg-gray-300">
+                        <i class="fas fa-redo"></i> Re-record
+                    </button>
+                    <button id="playback-btn" class="px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-md hover:bg-gray-300">
+                        <i class="fas fa-play"></i> Playback
+                    </button>
+                </div>
+                <div>
+                    <button id="start-record-btn" class="px-6 py-3 bg-gray-800 text-white font-semibold rounded-md hover:bg-gray-900">
+                        <i class="fas fa-record-vinyl"></i> Start Recording
+                    </button>
+                    <button id="stop-record-btn" class="px-6 py-3 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700">
+                        <i class="fas fa-stop"></i> Stop Recording
+                    </button>
+                    <button id="get-feedback-btn" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700">
+                        Get AI Feedback
+                    </button>
+                </div>
             </div>
             
             <div id="loading-spinner" class="text-center p-8 hidden">
                 <i class="fas fa-spinner fa-spin text-4xl text-blue-600"></i>
-                <p class="text-gray-600 mt-4">Analyzing your response...</p>
+                <p class="text-gray-600 mt-4">Analyzing your response... This may take up to 90 seconds.</p>
             </div>
 
-           <div id="feedback-section" class="mt-8 hidden">
-                <div class="bg-white p-8 rounded-lg shadow-sm">
-                    
-                    <div class="mb-6 pb-6 border-b">
-                        <h3 class="text-xl font-semibold text-gray-800 mb-2">Overall Performance</h3>
-                        <div class="flex items-center space-x-3">
-                            <span id="feedback-score" class="text-5xl font-bold text-blue-600">75%</span>
-                            <span id="feedback-rating" class="text-2xl font-semibold text-green-600">Good</span>
-                        </div>
-                    </div>
-
-                    <div class="flex flex-col lg:flex-row gap-8">
-                        <div class="flex-grow">
-                            <div class="mb-6">
-                                <h4 class="text-lg font-semibold text-gray-800 mb-3">Detailed Analysis</h4>
-                                <div class="space-y-2">
-                                    <table id="feedback-analysis-table" class="w-full">
-                                        <tbody class="text-sm">
-                                            </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            
-                            <div class="mb-6">
-                                <h4 class="text-lg font-semibold text-gray-800 mb-3">Your Response (Transcribed)</h4>
-                                <p id="feedback-transcript" class="p-4 bg-gray-50 rounded-md text-gray-700 leading-relaxed">
-                                    </p>
-                            </div>
-                        </div>
-
-                        <div class="w-full lg:w-2/5 flex-shrink-0">
-                            <div class="mb-6">
-                                <h4 class="text-lg font-semibold text-green-600 mb-3"><i class="fas fa-check-circle"></i> Strengths</h4>
-                                <ul id="feedback-strengths-list" class="list-disc list-inside space-y-1 text-gray-700">
-                                    </ul>
-                            </div>
-
-                            <div class="mb-6">
-                                <h4 class="text-lg font-semibold text-yellow-600 mb-3"><i class="fas fa-exclamation-triangle"></i> Areas to Improve</h4>
-                                <ul id="feedback-improvements-list" class="list-disc list-inside space-y-1 text-gray-700">
-                                    </ul>
-                            </div>
-
-                            <div>
-                                <h4 class="text-lg font-semibold text-blue-600 mb-3"><i class="fas fa-magic"></i> AI-Powered Suggestions</h4>
-                                <ul id="feedback-suggestions-list" class="list-disc list-inside space-y-1 text-gray-700">
-                                    </ul>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mt-8 pt-6 border-t text-right">
-                        <button id="next-question-btn" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700">
-                            Next Question <i class="fas fa-arrow-right ml-2"></i>
-                        </button>
-                    </div>
+            <div id="feedback-section" class="mt-8 hidden">
                 </div>
-            </div> </div>
+        </div>
     </main>
+
+    <aside class="w-80 bg-white p-6 shadow-md hidden xl:block">
+        <div class="mb-6">
+            <h4 class="font-semibold text-gray-800 mb-2">Tips for Success</h4>
+            <ul class="list-disc list-inside text-sm text-gray-600 space-y-1">
+                <li>Start with your current role/education</li>
+                <li>Highlight relevant achievements</li>
+                <li>Connect your goals with company values</li>
+                <li>Keep it concise (2-3 minutes)</li>
+            </ul>
+        </div>
+        <div class="mb-6">
+            <h4 class="font-semibold text-gray-800 mb-2">Question Info</h4>
+            <ul class="text-sm text-gray-600 space-y-1">
+                <li><strong>Category:</strong> HR</li>
+                <li><strong>Type:</strong> Behavioral</li>
+                <li><strong>Difficulty:</strong> Easy</li>
+                <li><strong>Recommended Time:</strong> 2-3 minutes</li>
+            </ul>
+        </div>
+    </aside>
 
     <script src="/static/js/app.js"></script>
 </body>
