@@ -51,12 +51,10 @@ JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
 
 
 # === NEW: JWT Dependency Function ===
-# Moved to the top so all other functions can see it
 async def get_current_user_email(access_token: Optional[str] = Cookie(None)) -> EmailStr:
     """
     This "dependency" reads the cookie, verifies the JWT, 
     and returns the user's email.
-    It will be run automatically for every endpoint that needs auth.
     """
     if not JWT_SECRET_KEY:
         raise HTTPException(status_code=500, detail="JWT Secret not configured")
@@ -64,11 +62,11 @@ async def get_current_user_email(access_token: Optional[str] = Cookie(None)) -> 
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated, no token found",
-            headers={"WWW-Authenticate": "Bearer"}, # Helps browser know it's an auth issue
+            headers={"WWW-Authenticate": "Bearer"},
         )
     try:
         payload = jwt.decode(access_token, JWT_SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub") # "sub" (subject) is our email
+        email: str = payload.get("sub")
         if email is None:
             raise HTTPException(status_code=401, detail="Invalid authentication token")
         return email
@@ -102,9 +100,9 @@ async def get_dashboard(request: Request, current_user_email: EmailStr = Depends
 
     user = {
         "name": user_name.capitalize(),
-        "level": "Beginner", # This is still mock
-        "streak": 0,         # This is still mock
-        "member_since": formatted_date # This is now REAL
+        "level": "Beginner",
+        "streak": 0,
+        "member_since": formatted_date
     }
     
     return templates.TemplateResponse("dashboard.html", {"request": request, "user": user})
@@ -148,8 +146,13 @@ async def handle_login(response: Response, email: str = Form(...), password: str
     
     redirect_response = RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
     redirect_response.set_cookie(
-        key="access_token", value=access_token, httponly=True,
-        max_age=int(ACCESS_TOKEN_EXPIRE_MINUTES * 60), samesite="lax", secure=True
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        max_age=int(ACCESS_TOKEN_EXPIRE_MINUTES * 60),
+        samesite="lax",
+        secure=True,
+        path="/"  # === ADD THIS LINE ===
     )
     print("Successful login for:", email)
     return redirect_response
@@ -184,8 +187,13 @@ async def handle_signup(email: str = Form(...), password: str = Form(...)):
     )
     redirect_response = RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
     redirect_response.set_cookie(
-        key="access_token", value=access_token, httponly=True,
-        max_age=int(ACCESS_TOKEN_EXPIRE_MINUTES * 60), samesite="lax", secure=True
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        max_age=int(ACCESS_TOKEN_EXPIRE_MINUTES * 60),
+        samesite="lax",
+        secure=True,
+        path="/"  # === ADD THIS LINE ===
     )
     return redirect_response
 
@@ -198,7 +206,7 @@ async def handle_demo_login():
 @app.get("/logout")
 async def handle_logout():
     response = RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
-    response.delete_cookie(key="access_token")
+    response.delete_cookie(key="access_token", path="/") # Also add path here
     print("User logged out.")
     return response
 
