@@ -339,7 +339,76 @@ async def process_soft_skills_audio(
             os.remove(file_path)
         raise HTTPException(status_code=500, detail="Error processing audio file.")
 
+# === 4. ANALYTICS ENDPOINT ===
 
+@app.get("/api/analytics-data")
+async def get_analytics_data():
+    """
+    API endpoint to fetch all data for the analytics page.
+    In a real app, this would query a database and aggregate results.
+    """
+    
+    # Mock data from Page 12 & 14
+    performance_trends = {
+        "labels": ["Nov 1", "Nov 2", "Nov 3", "Nov 4", "Nov 5"],
+        "datasets": [
+            {
+                "label": "Mock Interview",
+                "data": [65, 69, 70, 78, 75], # From graph
+                "borderColor": "#000000", # Black
+                "backgroundColor": "#000000",
+                "tension": 0.1
+            },
+            {
+                "label": "Competition",
+                "data": [0, 0, 45, 0, 68], # From graph
+                "borderColor": "#3B82F6", # Blue
+                "backgroundColor": "#3B82F6",
+                "tension": 0.4
+            },
+            {
+                "label": "Soft Skills",
+                "data": [0, 0, 0, 0, 80], # From graph
+                "borderColor": "#F59E0B", # Yellow
+                "backgroundColor": "#F59E0B",
+                "tension": 0.4
+            }
+        ]
+    }
+    
+    # Mock data from Page 12
+    recent_activity = [
+        {
+            "module": "Mock Interview",
+            "type": "Behavioral - 'Tell me about yourself'",
+            "score": "75%",
+            "date": "11/05"
+        },
+        {
+            "module": "Competition",
+            "type": "Public Speaking - 'Future of AI'",
+            "score": "68%",
+            "date": "11/04"
+        },
+        {
+            "module": "Mock Interview",
+            "type": "Technical - 'React hooks explanation'",
+            "score": "82%",
+            "date": "11/03"
+        }
+    ]
+    
+    # Mock data from Page 12
+    week_summary = {
+        "sessions": 3, # Total from recent_activity
+        "avg_score": 75 # Average of 75, 68, 82
+    }
+    
+    return {
+        "performanceTrends": performance_trends,
+        "recentActivity": recent_activity,
+        "weekSummary": week_summary
+    }
 # --- Main entry point for running the app ---
 if __name__ == "__main__":
     # Use this for local development
