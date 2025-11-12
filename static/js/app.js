@@ -485,3 +485,119 @@ if (document.title.includes("Aptitude Test") && window.location.pathname.include
     // --- Initialize ---
     loadQuestions();
 }
+// ===================================================
+// === ANALYTICS PAGE LOGIC ===
+// ===================================================
+
+if (document.title.includes("Analytics")) {
+
+    // --- DOM Elements ---
+    const chartCanvas = document.getElementById('performanceChart');
+    const activityListEl = document.getElementById('recent-activity-list');
+    const summarySessionsEl = document.getElementById('summary-sessions');
+    const summaryScoreEl = document.getElementById('summary-score');
+
+    /**
+     * Fetches all analytics data from the backend.
+     */
+    async function loadAnalytics() {
+        try {
+            const response = await fetch('/api/analytics-data');
+            if (!response.ok) throw new Error('Failed to load analytics');
+            
+            const data = await response.json();
+            
+            renderPerformanceChart(data.performanceTrends);
+            renderRecentActivity(data.recentActivity);
+            renderWeekSummary(data.weekSummary);
+
+        } catch (err) {
+            console.error(err);
+            chartCanvas.parentElement.innerHTML = '<p class="text-red-500">Could not load chart data.</p>';
+        }
+    }
+
+    /**
+     * Renders the main performance line chart using Chart.js.
+     * 
+
+[Image of a Chart.js line graph showing performance trends]
+
+     */
+    function renderPerformanceChart(chartData) {
+        if (!chartCanvas) return;
+        
+        const ctx = chartCanvas.getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: chartData, // Use data directly from API
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                    }
+                },
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+            }
+        });
+    }
+
+    /**
+     * Populates the "Recent Activity" list.
+     */
+    function renderRecentActivity(activity) {
+        if (!activity || activity.length === 0) return;
+        
+        activityListEl.innerHTML = ''; // Clear the placeholder
+
+        activity.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'flex justify-between items-center';
+            
+            let iconClass = 'fas fa-question';
+            if (item.module === 'Mock Interview') iconClass = 'fas fa-microphone-alt text-blue-500';
+            if (item.module === 'Competition') iconClass = 'fas fa-users text-purple-500';
+
+            div.innerHTML = `
+                <div class="flex items-center space-x-3">
+                    <i class="${iconClass}"></i>
+                    <div>
+                        <p class="font-semibold text-gray-800">${item.module}</p>
+                        <p class="text-xs text-gray-500">${item.type}</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="font-bold text-gray-900">${item.score}</p>
+                    <p class="text-xs text-gray-500">${item.date}</p>
+                </div>
+            `;
+            activityListEl.appendChild(div);
+        });
+    }
+
+    /**
+     * Populates the "This Week's Summary" card.
+     */
+    function renderWeekSummary(summary) {
+        summarySessionsEl.textContent = summary.sessions;
+        summaryScoreEl.textContent = `${summary.avg_score}%`;
+    }
+
+    // --- Initialize ---
+    loadAnalytics();
+}
