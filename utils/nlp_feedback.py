@@ -82,73 +82,97 @@ def _classify_text(transcript: str, labels: list) -> dict:
 
 # --- Main Function ---
 
-def get_nlp_feedback(transcript: str, question: str) -> dict:
+def get_nlp_feedback(transcript: str, question: str, context: str = "interview") -> dict:
     """
-    Analyzes a transcript and returns a full feedback dictionary.
-    
-    Args:
-        transcript: The text transcribed from audio.
-        question: The interview question that was asked.
-
-    Returns:
-        A dictionary in the format expected by the frontend.
+    Analyzes a transcript and returns a full feedback dictionary
+    based on the provided context (interview, competition, soft-skills).
     """
     
-    # --- 1. Generate Strengths ---
-    strength_prompt = (
-        f"Based on this answer to the question '{question}', "
-        "list 3 strengths of the response. "
-        "Focus on structure, clarity, and relevance."
-    )
-    strengths = _generate_feedback_points(strength_prompt.replace(transcript=transcript))
-
-    # --- 2. Generate Improvements ---
-    improvement_prompt = (
-        f"Based on this answer to the question '{question}', "
-        "list 3 concrete areas for improvement. "
-        "Focus on missing details, filler words, or confidence."
-    )
-    improvements = _generate_feedback_points(improvement_prompt.replace(transcript=transcript))
+    # --- 1. Define context-specific prompts and labels ---
     
-    # --- 3. Generate Suggestions ---
-    # These are more general tips
-    suggestions = [
-        "Practice the STAR (Situation, Task, Action, Result) method for behavioral questions.",
-        "Try to quantify your achievements with numbers where possible."
-    ]
+    if context == "soft-skills":
+        strength_prompt = (
+            f"Based on this answer to the prompt '{question}', "
+            "list 3 strengths of the response. "
+            "Focus on vocabulary, grammar, and articulation."
+        )
+        improvement_prompt = (
+            f"Based on this answer to the prompt '{question}', "
+            "list 3 concrete areas for improvement. "
+            "Focus on filler words, repetition, or clarity."
+        )
+        # Page 5 Evaluation Criteria
+        analysis_labels = ["Rich Vocabulary", "Grammatically Correct", "Clear", "Fluent"]
+        # Mocking pronunciation as it requires a different model type
+        mock_scores = {"Pronunciation": random.randint(70, 95)}
+        suggestions = [
+            "Try using a thesaurus to find synonyms for common words.",
+            "Record yourself and listen for 'um's and 'ah's."
+        ]
 
-    # --- 4. Run Classification Analysis ---
-    # These labels will be scored from 0-100 by the model
-    analysis_labels = ["Clear", "Structured", "Confident", "Relevant", "Professional"]
+    elif context == "competition":
+        strength_prompt = (
+            f"Based on this debate argument for the topic '{question}', "
+            "list 3 strengths. Focus on persuasive language, strong structure, and evidence."
+        )
+        improvement_prompt = (
+            f"Based on this debate argument for the topic '{question}', "
+            "list 3 areas for improvement. "
+            "Focus on weak arguments, lack of evidence, or poor structure."
+        )
+        # Page 3 Evaluation Criteria
+        analysis_labels = ["Structured Argument", "Persuasive", "Clear", "Used Evidence"]
+        mock_scores = {"Time Management": random.randint(50, 90)} # Mock
+        suggestions = [
+            "Always try to anticipate and address counterarguments.",
+            "Start with a strong opening statement to grab attention."
+        ]
+
+    else: # Default to "interview"
+        strength_prompt = (
+            f"Based on this answer to the interview question '{question}', "
+            "list 3 strengths of the response. "
+            "Focus on structure, clarity, and relevance."
+        )
+        improvement_prompt = (
+            f"Based on this answer to the interview question '{question}', "
+            "list 3 concrete areas for improvement. "
+            "Focus on missing details, filler words, or confidence."
+        )
+        # Page 6 Evaluation Criteria
+        analysis_labels = ["Clear", "Structured", "Confident", "Relevant"]
+        mock_scores = {"Grammar": random.randint(85, 98)} # Mock
+        suggestions = [
+            "Practice the STAR (Situation, Task, Action, Result) method for behavioral questions.",
+            "Try to quantify your achievements with numbers where possible."
+        ]
+
+    # --- 2. Generate Feedback (Same as before) ---
+    strengths = _generate_feedback_points(strength_prompt, transcript)
+    improvements = _generate_feedback_points(improvement_prompt, transcript)
+
+    # --- 3. Run Classification Analysis (Same as before) ---
     analysis_scores = _classify_text(transcript, analysis_labels)
     
-    # Mocking grammar for now, as it's a different model type
-    analysis_scores["Grammar"] = random.randint(85, 98) # Mock grammar score
+    # Add in the mock scores for criteria we can't measure yet
+    analysis_scores.update(mock_scores)
 
-    # --- 5. Calculate Overall Score ---
-    # Simple average of the analysis scores
+    # --- 4. Calculate Overall Score (Same as before) ---
     total_score = sum(analysis_scores.values())
     overall_score = int(total_score / len(analysis_scores))
 
-    # --- 6. Assemble Final Feedback Object ---
+    # --- 5. Assemble Final Feedback Object ---
     feedback = {
         "overall_score": overall_score,
         "transcript": transcript,
-        "analysis": {
-            # Renaming for the UI
-            "Clarity": analysis_scores.get("Clear", 0),
-            "Structure": analysis_scores.get("Structured", 0),
-            "Confidence": analysis_scores.get("Confident", 0),
-            "Relevance": analysis_scores.get("Relevant", 0),
-            "Grammar": analysis_scores.get("Grammar", 0) # This is still mock
-        },
+        "analysis": analysis_scores, # This now dynamically contains the correct labels
         "strengths": strengths,
         "improvements": improvements,
         "suggestions": suggestions
     }
     
-    print("--- REAL NLP FEEDBACK ---")
+    print(f"--- REAL NLP FEEDBACK (Context: {context}) ---")
     print(feedback)
-    print("-------------------------")
+    print("---------------------------------------------")
     
     return feedback
