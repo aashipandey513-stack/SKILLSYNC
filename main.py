@@ -45,6 +45,12 @@ async def get_login_page(request: Request):
     """Serves the main login page (login.html)."""
     return templates.TemplateResponse("login.html", {"request": request})
 
+@app.get("/logout")
+async def handle_logout():
+    """Logs the user out (mock) by redirecting to login."""
+    # In a real app, you would also clear the session cookie here
+    return RedirectResponse(url="/", status_code=303)
+    
 @app.get("/dashboard", response_class=HTMLResponse)
 async def get_dashboard(request: Request):
     """Serves the main dashboard page (dashboard.html)."""
