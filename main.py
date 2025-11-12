@@ -9,26 +9,26 @@ from fastapi import (
     HTTPException, 
     UploadFile, 
     File,
-    Cookie, # New
-    status  # New
+    Cookie,
+    status
 )
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, RedirectResponse, Response # New
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from pydantic import BaseModel, EmailStr
-from typing import List, Optional # Optional is new
+from typing import List, Optional
 import uvicorn
 import shutil
 import os
 import datetime
-from datetime import timedelta # New
+from datetime import timedelta, timezone # <-- IMPORT TIMEZONE HERE
 
 # --- AI Utility Module Imports ---
 from utils import speech_to_text
 from utils import nlp_feedback
 
 # --- DB & Auth Imports ---
-from utils.database import db  # Import our database connection
+from utils.database import db
 from utils.auth import (
     hash_password, 
     verify_password, 
@@ -36,7 +36,7 @@ from utils.auth import (
     ALGORITHM, 
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
-from jose import JWTError, jwt # New
+from jose import JWTError, jwt
 
 # --- App Initialization ---
 app = FastAPI(title="SKILLSYNC")
@@ -47,7 +47,6 @@ templates = Jinja2Templates(directory="templates")
 TEMP_AUDIO_DIR = "temp_audio"
 os.makedirs(TEMP_AUDIO_DIR, exist_ok=True)
 
-# --- NEW: Load JWT Secret ---
 JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
 
 
@@ -83,7 +82,6 @@ async def get_analytics(request: Request):
 
 # === 2. REAL AUTHENTICATION ENDPOINTS (UPDATED) ===
 
-# --- NEW: JWT Dependency Function ---
 async def get_current_user_email(access_token: Optional[str] = Cookie(None)) -> EmailStr:
     if not JWT_SECRET_KEY:
         raise HTTPException(status_code=500, detail="JWT Secret not configured")
@@ -104,11 +102,6 @@ async def get_current_user_email(access_token: Optional[str] = Cookie(None)) -> 
 
 @app.post("/login")
 async def handle_login(response: Response, email: str = Form(...), password: str = Form(...)):
-    """
-    Handles a real user login.
-    UPDATED: Now creates a JWT and sets it as an HttpOnly cookie.
-    """
-    # === FIX: Changed `if not db:` to `if db is None:` ===
     if db is None:
         raise HTTPException(status_code=500, detail="Database not connected")
     
@@ -133,11 +126,6 @@ async def handle_login(response: Response, email: str = Form(...), password: str
 
 @app.post("/signup")
 async def handle_signup(email: str = Form(...), password: str = Form(...)):
-    """
-    Handles a new user signing up.
-    UPDATED: Now logs the user in immediately by setting the cookie.
-    """
-    # === FIX: Changed `if not db:` to `if db is None:` ===
     if db is None:
         raise HTTPException(status_code=500, detail="Database not connected")
     
@@ -146,7 +134,13 @@ async def handle_signup(email: str = Form(...), password: str = Form(...)):
         raise HTTPException(status_code=400, detail="Email already registered")
         
     hashed_pwd = hash_password(password)
-    new_user = { "email": email.lower(), "hashed_password": hashed_pwd, "created_at": datetime.datetime.now(datetime.UTC) }
+    
+    # === FIX: Replaced datetime.UTC with timezone.utc ===
+    new_user = { 
+        "email": email.lower(), 
+        "hashed_password": hashed_pwd, 
+        "created_at": datetime.datetime.now(timezone.utc) 
+    }
     
     try:
         await db["users"].insert_one(new_user)
@@ -198,15 +192,15 @@ async def process_interview_audio(
         else:
             feedback = nlp_feedback.get_nlp_feedback(transcript, question, context=context)
         
-        # === FIX: Changed `if db and ...` to `if db is not None and ...` ===
         if db is not None and "Transcription Error" not in transcript:
+            # === FIX: Replaced datetime.UTC with timezone.utc ===
             session_document = {
                 "user_email": current_user_email,
                 "module": "Mock Interview",
                 "question": question,
                 "transcript": feedback["transcript"],
                 "score": feedback["overall_score"],
-                "created_at": datetime.datetime.now(datetime.UTC)
+                "created_at": datetime.datetime.now(timezone.utc)
             }
             await db["practice_sessions"].insert_one(session_document)
             print(f"Saved session for {current_user_email} to database.")
@@ -235,15 +229,15 @@ async def process_competition_audio(
         else:
             feedback = nlp_feedback.get_nlp_feedback(transcript, question, context=context)
         
-        # === FIX: Changed `if db and ...` to `if db is not None and ...` ===
         if db is not None and "Transcription Error" not in transcript:
+            # === FIX: Replaced datetime.UTC with timezone.utc ===
             session_document = {
                 "user_email": current_user_email,
                 "module": "Competition",
                 "question": question,
                 "transcript": feedback["transcript"],
                 "score": feedback["overall_score"],
-                "created_at": datetime.datetime.now(datetime.UTC)
+                "created_at": datetime.datetime.now(timezone.utc)
             }
             await db["practice_sessions"].insert_one(session_document)
             print(f"Saved session for {current_user_email} to database.")
@@ -272,15 +266,15 @@ async def process_soft_skills_audio(
         else:
             feedback = nlp_feedback.get_nlp_feedback(transcript, question, context=context)
         
-        # === FIX: Changed `if db and ...` to `if db is not None and ...` ===
         if db is not None and "Transcription Error" not in transcript:
+            # === FIX: Replaced datetime.UTC with timezone.utc ===
             session_document = {
                 "user_email": current_user_email,
                 "module": "Soft Skills",
                 "question": question,
                 "transcript": feedback["transcript"],
                 "score": feedback["overall_score"],
-                "created_at": datetime.datetime.now(datetime.UTC)
+                "created_at": datetime.datetime.now(timezone.utc)
             }
             await db["practice_sessions"].insert_one(session_document)
             print(f"Saved session for {current_user_email} to database.")
@@ -323,15 +317,15 @@ async def submit_quiz(
             if selected_option == correct_answer: score += 1
         except Exception as e: print(f"Error scoring question {index}: {e}")
     
-    # === FIX: Changed `if db:` to `if db is not None:` ===
     if db is not None:
+        # === FIX: Replaced datetime.UTC with timezone.utc ===
         quiz_result_doc = {
             "user_email": current_user_email,
             "module": "Aptitude Test",
             "score": score,
             "total_questions": total,
             "answers": user_answers.answers,
-            "created_at": datetime.datetime.now(datetime.UTC)
+            "created_at": datetime.datetime.now(timezone.utc)
         }
         await db["quiz_results"].insert_one(quiz_result_doc)
         print(f"Saved quiz result for {current_user_email} to database.")
@@ -344,15 +338,9 @@ async def submit_quiz(
 async def get_analytics_data(
     current_user_email: EmailStr = Depends(get_current_user_email)
 ):
-    """
-    API endpoint to fetch all data for the analytics page.
-    UPDATED: Now queries the database for the logged-in user.
-    """
-    # === FIX: Changed `if not db:` to `if db is None:` ===
     if db is None:
         raise HTTPException(status_code=500, detail="Database not connected")
         
-    # --- Tab 3: Session History (Fetch Real Data) ---
     session_history = []
     cursor = db["practice_sessions"].find(
         {"user_email": current_user_email}
@@ -368,7 +356,6 @@ async def get_analytics_data(
             "details": session.get("transcript", "N/A")[:40] + "..."
         })
     
-    # --- Tab 1: Recent Activity & Summary (Derived from History) ---
     recent_activity = []
     total_score = 0
     for session in session_history[:3]:
@@ -385,7 +372,7 @@ async def get_analytics_data(
         "avg_score": int(total_score / len(recent_activity)) if recent_activity else 0
     }
     
-    # --- (Mock data sections remain unchanged) ---
+    # (Mock data sections remain unchanged)
     performance_trends = {
         "labels": ["Nov 1", "Nov 2", "Nov 3", "Nov 4", "Nov 5"],
         "datasets": [
