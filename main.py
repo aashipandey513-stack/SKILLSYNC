@@ -173,7 +173,42 @@ async def handle_signup(email: str = Form(...), password: str = Form(...)):
 
 @app.get("/demo")
 async def handle_demo_login():
-    return RedirectResponse(url="/dashboard", status_code=303)
+    """
+    Handles the 'Try Demo Account' button click.
+    UPDATED: Now logs in as a pre-defined demo user.
+    """
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not connected")
+    
+    # --- THIS IS THE NEW LOGIC ---
+    DEMO_USER_EMAIL = "demo@skillsync.app"
+    
+    # 1. Find the demo user in the database
+    user_in_db = await db["users"].find_one({"email": DEMO_USER_EMAIL})
+    
+    if not user_in_db:
+        # This will happen if you forgot to create the user from Step 1
+        raise HTTPException(status_code=404, detail=f"Demo user '{DEMO_USER_EMAIL}' not found in database. Please sign up as this user first.")
+    
+    # 2. Create an access token for the demo user
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user_in_db["email"]}, expires_delta=access_token_expires
+    )
+    
+    # 3. Create a redirect response and set the cookie
+    redirect_response = RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
+    redirect_response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        max_age=int(ACCESS_TOKEN_EXPIRE_MINUTES * 60),
+        samesite="none",
+        secure=True,
+        path="/"
+    )
+    print("Successful login for: DEMO USER")
+    return redirect_response
 
 @app.get("/logout")
 async def handle_logout():
