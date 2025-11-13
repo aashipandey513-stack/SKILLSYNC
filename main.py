@@ -50,7 +50,7 @@ os.makedirs(TEMP_AUDIO_DIR, exist_ok=True)
 JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
 
 
-# === NEW: JWT Dependency Function ===
+# === JWT Dependency Function ===
 async def get_current_user_email(access_token: Optional[str] = Cookie(None)) -> EmailStr:
     """
     This "dependency" reads the cookie, verifies the JWT, 
@@ -82,21 +82,15 @@ async def get_login_page(request: Request):
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def get_dashboard(request: Request, current_user_email: EmailStr = Depends(get_current_user_email)):
-    """
-    Serves the main dashboard page.
-    UPDATED: Now fetches real data for the logged-in user.
-    """
     if db is None:
         raise HTTPException(status_code=500, detail="Database not connected")
-
     user_data = await db["users"].find_one({"email": current_user_email})
-
     if not user_data:
         raise HTTPException(status_code=404, detail="User not found")
 
     user_name = user_data.get("email").split("@")[0]
     created_at_date = user_data.get("created_at")
-    formatted_date = created_at_date.strftime("%m/%d/%Y") # Formats as MM/DD/YYYY
+    formatted_date = created_at_date.strftime("%m/%d/%Y")
 
     user = {
         "name": user_name.capitalize(),
@@ -104,7 +98,6 @@ async def get_dashboard(request: Request, current_user_email: EmailStr = Depends
         "streak": 0,
         "member_since": formatted_date
     }
-    
     return templates.TemplateResponse("dashboard.html", {"request": request, "user": user})
 
 @app.get("/mock-interview", response_class=HTMLResponse)
@@ -133,9 +126,7 @@ async def get_analytics(request: Request):
 async def handle_login(response: Response, email: str = Form(...), password: str = Form(...)):
     if db is None:
         raise HTTPException(status_code=500, detail="Database not connected")
-    
     user_in_db = await db["users"].find_one({"email": email.lower()})
-
     if not user_in_db or not verify_password(password, user_in_db["hashed_password"]):
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     
@@ -143,41 +134,29 @@ async def handle_login(response: Response, email: str = Form(...), password: str
     access_token = create_access_token(
         data={"sub": user_in_db["email"]}, expires_delta=access_token_expires
     )
-    
     redirect_response = RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
     redirect_response.set_cookie(
-        key="access_token",
-        value=access_token,
-        httponly=True,
-        max_age=int(ACCESS_TOKEN_EXPIRE_MINUTES * 60),
-        samesite="none",  # === THIS IS THE FIX ===
-        secure=True,    # === THIS IS THE FIX ===
-        path="/"
+        key="access_token", value=access_token, httponly=True,
+        max_age=int(ACCESS_TOKEN_EXPIRE_MINUTES * 60), samesite="none", secure=True, path="/"
     )
-    print("Successful login for:", email)
     return redirect_response
-
 
 @app.post("/signup")
 async def handle_signup(email: str = Form(...), password: str = Form(...)):
     if db is None:
         raise HTTPException(status_code=500, detail="Database not connected")
-    
     existing_user = await db["users"].find_one({"email": email.lower()})
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
         
     hashed_pwd = hash_password(password)
-    
     new_user = { 
         "email": email.lower(), 
         "hashed_password": hashed_pwd, 
         "created_at": datetime.datetime.now(timezone.utc) 
     }
-    
     try:
         await db["users"].insert_one(new_user)
-        print(f"New user created: {email.lower()}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error creating user: {e}")
     
@@ -187,32 +166,19 @@ async def handle_signup(email: str = Form(...), password: str = Form(...)):
     )
     redirect_response = RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
     redirect_response.set_cookie(
-        key="access_token",
-        value=access_token,
-        httponly=True,
-        max_age=int(ACCESS_TOKEN_EXPIRE_MINUTES * 60),
-        samesite="none",  # === THIS IS THE FIX ===
-        secure=True,    # === THIS IS THE FIX ===
-        path="/"
+        key="access_token", value=access_token, httponly=True,
+        max_age=int(ACCESS_TOKEN_EXPIRE_MINUTES * 60), samesite="none", secure=True, path="/"
     )
     return redirect_response
-
 
 @app.get("/demo")
 async def handle_demo_login():
     return RedirectResponse(url="/dashboard", status_code=303)
 
-
 @app.get("/logout")
 async def handle_logout():
     response = RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
-    response.delete_cookie(
-        key="access_token", 
-        path="/",
-        samesite="none",  # === THIS IS THE FIX ===
-        secure=True     # === THIS IS THE FIX ===
-    )
-    print("User logged out.")
+    response.delete_cookie(key="access_token", path="/", samesite="none", secure=True)
     return response
 
 
@@ -221,9 +187,7 @@ async def handle_logout():
 @app.post("/process-interview-audio")
 async def process_interview_audio(
     current_user_email: EmailStr = Depends(get_current_user_email),
-    audio_file: UploadFile = File(...),
-    question: str = Form(...),
-    context: str = Form(...)
+    audio_file: UploadFile = File(...), question: str = Form(...), context: str = Form(...)
 ):
     file_path = os.path.join(TEMP_AUDIO_DIR, audio_file.filename)
     try:
@@ -242,10 +206,10 @@ async def process_interview_audio(
                 "question": question,
                 "transcript": feedback["transcript"],
                 "score": feedback["overall_score"],
+                "analysis": feedback.get("analysis", {}), # Save the analysis block
                 "created_at": datetime.datetime.now(timezone.utc)
             }
             await db["practice_sessions"].insert_one(session_document)
-            print(f"Saved session for {current_user_email} to database.")
         
         os.remove(file_path)
         return feedback
@@ -253,13 +217,10 @@ async def process_interview_audio(
         if os.path.exists(file_path): os.remove(file_path)
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @app.post("/process-competition-audio")
 async def process_competition_audio(
     current_user_email: EmailStr = Depends(get_current_user_email),
-    audio_file: UploadFile = File(...),
-    question: str = Form(...),
-    context: str = Form(...)
+    audio_file: UploadFile = File(...), question: str = Form(...), context: str = Form(...)
 ):
     file_path = os.path.join(TEMP_AUDIO_DIR, audio_file.filename)
     try:
@@ -278,10 +239,10 @@ async def process_competition_audio(
                 "question": question,
                 "transcript": feedback["transcript"],
                 "score": feedback["overall_score"],
+                "analysis": feedback.get("analysis", {}),
                 "created_at": datetime.datetime.now(timezone.utc)
             }
             await db["practice_sessions"].insert_one(session_document)
-            print(f"Saved session for {current_user_email} to database.")
         
         os.remove(file_path)
         return feedback
@@ -289,13 +250,10 @@ async def process_competition_audio(
         if os.path.exists(file_path): os.remove(file_path)
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @app.post("/process-soft-skills-audio")
 async def process_soft_skills_audio(
     current_user_email: EmailStr = Depends(get_current_user_email),
-    audio_file: UploadFile = File(...),
-    question: str = Form(...),
-    context: str = Form(...)
+    audio_file: UploadFile = File(...), question: str = Form(...), context: str = Form(...)
 ):
     file_path = os.path.join(TEMP_AUDIO_DIR, audio_file.filename)
     try:
@@ -314,10 +272,10 @@ async def process_soft_skills_audio(
                 "question": question,
                 "transcript": feedback["transcript"],
                 "score": feedback["overall_score"],
+                "analysis": feedback.get("analysis", {}),
                 "created_at": datetime.datetime.now(timezone.utc)
             }
             await db["practice_sessions"].insert_one(session_document)
-            print(f"Saved session for {current_user_email} to database.")
         
         os.remove(file_path)
         return feedback
@@ -332,9 +290,6 @@ class QuizQuestion(BaseModel):
 mock_quiz_db = [
     {"category": "Quantitative Reasoning", "question": "If a train travels 300 km in 4 hours, what is its average speed in km/h?", "options": ["60 km/h", "75 km/h", "80 km/h", "90 km/h"], "answer": "75 km/h"},
     {"category": "Logical Reasoning", "question": "Which number should come next in the series? 1, 4, 9, 16, ___", "options": ["20", "25", "30", "36"], "answer": "25"},
-    {"category": "Verbal Reasoning", "question": "Choose the word that is the best antonym for 'Ephemeral'.", "options": ["Transient", "Short-lived", "Permanent", "Weak"], "answer": "Permanent"},
-    {"category": "Data Interpretation", "question": "If a pie chart shows 25% for 'Category A', what angle does it represent in degrees?", "options": ["45°", "90°", "180°", "25°"], "answer": "90°"},
-    {"category": "Quantitative Reasoning", "question": "What is 5% of 200?", "options": ["5", "10", "15", "20"], "answer": "10"}
 ]
 @app.get("/api/quiz-questions")
 async def get_quiz_questions():
@@ -359,33 +314,34 @@ async def submit_quiz(
     
     if db is not None:
         quiz_result_doc = {
-            "user_email": current_user_email,
-            "module": "Aptitude Test",
-            "score": score,
-            "total_questions": total,
-            "answers": user_answers.answers,
-            "created_at": datetime.datetime.now(timezone.utc)
+            "user_email": current_user_email, "module": "Aptitude Test",
+            "score": score, "total_questions": total,
+            "answers": user_answers.answers, "created_at": datetime.datetime.now(timezone.utc)
         }
         await db["quiz_results"].insert_one(quiz_result_doc)
-        print(f"Saved quiz result for {current_user_email} to database.")
     return {"score": score, "total": total}
 
 
-# === 5. ANALYTICS API ===
+# === 5. ANALYTICS API (UPDATED WITH REAL DATA) ===
 
 @app.get("/api/analytics-data")
 async def get_analytics_data(
     current_user_email: EmailStr = Depends(get_current_user_email)
 ):
+    """
+    API endpoint to fetch all data for the analytics page.
+    UPDATED: Now queries the database for the logged-in user.
+    """
     if db is None:
         raise HTTPException(status_code=500, detail="Database not connected")
         
+    # --- Query 1: Session History (Real Data) ---
     session_history = []
-    cursor = db["practice_sessions"].find(
+    session_cursor = db["practice_sessions"].find(
         {"user_email": current_user_email}
     ).sort("created_at", -1).limit(20)
     
-    async for session in cursor:
+    async for session in session_cursor:
         session_history.append({
             "date": session["created_at"].strftime("%Y-%m-%d"),
             "module": session["module"],
@@ -395,14 +351,13 @@ async def get_analytics_data(
             "details": session.get("transcript", "N/A")[:40] + "..."
         })
     
+    # --- Tab 1: Recent Activity & Summary (Real Data) ---
     recent_activity = []
     total_score = 0
     for session in session_history[:3]:
         recent_activity.append({
-            "module": session["module"],
-            "type": session["type"],
-            "score": session["score"],
-            "date": session["date"]
+            "module": session["module"], "type": session["type"],
+            "score": session["score"], "date": session["date"]
         })
         total_score += int(session["score"].replace("%", ""))
 
@@ -411,24 +366,115 @@ async def get_analytics_data(
         "avg_score": int(total_score / len(recent_activity)) if recent_activity else 0
     }
     
-    # (Mock data sections remain unchanged)
+    # --- Query 2: Performance Trends (Real Data) ---
+    # 
+    pipeline = [
+        { "$match": { "user_email": current_user_email } },
+        { "$project": {
+            "module": 1,
+            "score": 1,
+            "date": { "$dateToString": { "format": "%Y-%m-%d", "date": "$created_at" } }
+        }},
+        { "$group": {
+            "_id": { "date": "$date", "module": "$module" },
+            "avg_score": { "$avg": "$score" }
+        }},
+        { "$sort": { "_id.date": 1 } }
+    ]
+    
+    trends_cursor = db["practice_sessions"].aggregate(pipeline)
+    
+    # Format data for Chart.js
+    labels = set()
+    module_data = {"Mock Interview": {}, "Competition": {}, "Soft Skills": {}}
+    
+    async for item in trends_cursor:
+        date = item["_id"]["date"]
+        module = item["_id"]["module"]
+        avg_score = item["avg_score"]
+        
+        if module in module_data:
+            labels.add(date)
+            module_data[module][date] = avg_score
+
+    sorted_labels = sorted(list(labels))
+    datasets = []
+    
+    colors = {
+        "Mock Interview": "#000000",
+        "Competition": "#3B82F6",
+        "Soft Skills": "#F59E0B"
+    }
+
+    for module, scores in module_data.items():
+        data_points = []
+        for label in sorted_labels:
+            data_points.append(scores.get(label, None)) # Use null for missing days
+            
+        if any(data_points): # Only add if there is data
+            datasets.append({
+                "label": module,
+                "data": data_points,
+                "borderColor": colors.get(module, "#CCCCCC"),
+                "backgroundColor": colors.get(module, "#CCCCCC"),
+                "tension": 0.1
+            })
+
     performance_trends = {
-        "labels": ["Nov 1", "Nov 2", "Nov 3", "Nov 4", "Nov 5"],
-        "datasets": [
-            {"label": "Mock Interview", "data": [65, 69, 70, 78, 75], "borderColor": "#000000", "backgroundColor": "#000000", "tension": 0.1},
-            {"label": "Competition", "data": [0, 0, 45, 0, 68], "borderColor": "#3B82F6", "backgroundColor": "#3B82F6", "tension": 0.4},
-        ]
+        "labels": sorted_labels,
+        "datasets": datasets
     }
+
+    # --- Query 3: Skills Analysis (Real Data) ---
+    # 
+    pipeline_skills = [
+        { "$match": { "user_email": current_user_email, "analysis": { "$exists": True, "$ne": {} } } },
+        { "$project": { "analysis_kv": { "$objectToArray": "$analysis" } } },
+        { "$unwind": "$analysis_kv" },
+        { "$group": {
+            "_id": "$analysis_kv.k", # Group by skill name (e.g., "Clarity")
+            "avg_score": { "$avg": "$analysis_kv.v" }
+        }},
+        { "$project": {
+            "name": "$_id",
+            "score": { "$round": ["$avg_score", 0] }
+        }}
+    ]
+    
+    skills_cursor = db["practice_sessions"].aggregate(pipeline_skills)
+    
+    radar_labels = []
+    radar_data = []
+    breakdown_list = []
+    
+    async for skill in skills_cursor:
+        name = skill["name"]
+        score = skill["score"]
+        
+        radar_labels.append(name)
+        radar_data.append(score)
+        
+        rating = "Good"
+        if score >= 85:
+            rating = "Excellent"
+        elif score < 70:
+            rating = "Needs Improvement"
+            
+        breakdown_list.append({
+            "name": name,
+            "score": score,
+            "rating": rating
+        })
+
     skills_analysis = {
-        "radar": {"labels": ["Communication", "Articulation", "Confidence", "Critical Thinking", "Grammar", "Problem Solving"], "data": [84, 81, 79, 86, 89, 84]},
-        "breakdown": [
-            {"name": "Communication", "score": 84, "rating": "Good"}, {"name": "Articulation", "score": 81, "rating": "Good"},
-            {"name": "Confidence", "score": 79, "rating": "Good"}, {"name": "Critical Thinking", "score": 86, "rating": "Excellent"},
-        ]
+        "radar": {"labels": radar_labels, "data": radar_data},
+        "breakdown": breakdown_list
     }
+
+    # --- Tab 4: Achievements (Real Data) ---
     achievements = [
-        {"name": "First Interview", "desc": "Completed first mock interview", "icon": "fa-check", "status": "Completed", "progress": 100},
-        {"name": "Consistent Performer", "desc": "Complete 20 practice sessions", "icon": "fa-medal", "status": f"{len(session_history)}/20", "progress": (len(session_history)/20)*100},
+        {"name": "First Session", "desc": "Completed first practice session", "icon": "fa-check", "status": "Completed" if len(session_history) > 0 else "In Progress", "progress": 100 if len(session_history) > 0 else 0},
+        {"name": "Consistent Performer", "desc": "Complete 10 practice sessions", "icon": "fa-medal", "status": f"{len(session_history)}/10", "progress": (len(session_history)/10)*100},
     ]
     
     return {
