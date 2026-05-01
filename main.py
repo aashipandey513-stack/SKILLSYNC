@@ -110,22 +110,37 @@ async def get_dashboard(request: Request, current_user_email: EmailStr = Depends
 
 @app.get("/mock-interview", response_class=HTMLResponse)
 async def get_mock_interview(request: Request):
-    return templates.TemplateResponse("mock_interview.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="mock_interview.html")
 @app.get("/competition", response_class=HTMLResponse)
 async def get_competition_practice(request: Request):
-    return templates.TemplateResponse("competition.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="competition.html")
 @app.get("/soft-skills", response_class=HTMLResponse)
 async def get_soft_skills(request: Request):
-    return templates.TemplateResponse("soft_skills.html", {"request": request})
+    return templates.TemplateResponse(
+        request=request, 
+        name="soft_skills.html"
+    )
+
 @app.get("/aptitude", response_class=HTMLResponse)
 async def get_aptitude_test(request: Request):
-    return templates.TemplateResponse("aptitude.html", {"request": request})
+    return templates.TemplateResponse(
+        request=request, 
+        name="aptitude.html"
+    )
+
 @app.get("/aptitude/quiz", response_class=HTMLResponse)
 async def get_aptitude_quiz_page(request: Request):
-    return templates.TemplateResponse("aptitude_quiz.html", {"request": request})
+    return templates.TemplateResponse(
+        request=request, 
+        name="aptitude_quiz.html"
+    )
+
 @app.get("/analytics", response_class=HTMLResponse)
 async def get_analytics(request: Request):
-    return templates.TemplateResponse("analytics.html", {"request": request})
+    return templates.TemplateResponse(
+        request=request, 
+        name="analytics.html"
+    )
 
 
 # === 2. REAL AUTHENTICATION ENDPOINTS ===
