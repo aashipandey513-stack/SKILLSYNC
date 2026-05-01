@@ -102,7 +102,11 @@ async def get_dashboard(request: Request, current_user_email: EmailStr = Depends
         "streak": 0,
         "member_since": formatted_date
     }
-    return templates.TemplateResponse("dashboard.html", {"request": request, "user": user})
+    return templates.TemplateResponse(
+    request=request, 
+    name="dashboard.html", 
+    context={"user": user}
+)
 
 @app.get("/mock-interview", response_class=HTMLResponse)
 async def get_mock_interview(request: Request):
