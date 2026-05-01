@@ -78,7 +78,11 @@ async def get_current_user_email(access_token: Optional[str] = Cookie(None)) -> 
 
 @app.get("/", response_class=HTMLResponse)
 async def get_login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse(
+    request=request, 
+    name="login.html", 
+    context={} 
+)
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def get_dashboard(request: Request, current_user_email: EmailStr = Depends(get_current_user_email)):
