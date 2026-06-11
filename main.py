@@ -203,7 +203,7 @@ async def handle_demo_login():
     if db is None:
         raise HTTPException(status_code=500, detail="Database not connected")
     
-    # --- THIS IS THE NEW LOGIC ---
+    # --- HANDLING DEMO SIGN IN ---
     DEMO_USER_EMAIL = "demo@skillsync.app"
     
     # 1. Find the demo user in the database
