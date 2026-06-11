@@ -8,7 +8,7 @@ pinned: false
 license: proprietary
 ---
 
-# SKILLSYNC: AI-Driven Interview Preparation Architecture
+# SKILLSYNC: AI-Powered Interview Preparation Platform
 
 **SKILLSYNC** is a full-stack, AI-integrated web platform architected to automate and personalize technical and behavioral interview preparation. By orchestrating a multi-model pipeline of specialized transformer models, the system processes real-time audio inputs to deliver actionable, data-driven feedback on user communication and soft-skill proficiency.
 
@@ -18,7 +18,7 @@ license: proprietary
 
 SKILLSYNC operates on a high-throughput, low-latency pipeline designed for seamless asynchronous processing:
 
-1. **Client Interaction:** Users engage with a responsive React.js interface, recording interview responses mapped to a curated database of 50+ behavioral and technical scenarios.
+1. **User Interface:** A responsive React.js frontend where users record their practice interview responses.
 2. **Secure Transmission:** Requests are authenticated via JSON Web Tokens (JWT) and routed to a monolithic FastAPI backend.
 3. **Acoustic Processing:** Audio payloads are instantly transcribed into high-fidelity text utilizing **OpenAI's Whisper** model.
 4. **Parallel AI Inference:** - **Google FLAN-T5 (Generative):** Analyzes the transcription to construct human-like, context-aware qualitative feedback regarding content delivery.
