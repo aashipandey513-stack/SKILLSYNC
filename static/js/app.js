@@ -1,4 +1,3 @@
-// SkillSync/static/js/app.js
 
 // ===================================================
 // === AUDIO RECORDER LOGIC (ALL PAGES) ===
